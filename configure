@@ -3416,8 +3416,8 @@ if [ "$HLHDF_SZLIB_LIB" != "" ]; then
   LD_PRINTOUT=$LD_PRINTOUT:`echo "$HLHDF_SZLIB_LIB" | sed -e"s/[ \t]*-L//"`
 fi
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: Setting F77=gfortran, needed for acpg" >&5
-$as_echo "Setting F77=gfortran, needed for acpg" >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: Setting F77=gfortran, needed for baltrad-wrwp" >&5
+$as_echo "Setting F77=gfortran, needed for baltrad-wrwp" >&6; }
 F77=gfortran
 ac_ext=f
 ac_compile='$F77 -c $FFLAGS conftest.$ac_ext >&5'

@@ -181,7 +181,7 @@ fi
 dnl We need BLAS, CBLAS and LAPACK(E) as well, so we start figuring out where to find them. We need
 dnl to do it in the order, BLAS, CBLAS and LAPACK but first, do we have fortran or gfortran available.
 dnl AC_FC_LIBRARY_LDFLAGS
-AC_MSG_RESULT([Setting F77=gfortran, needed for acpg])
+AC_MSG_RESULT([Setting F77=gfortran, needed for baltrad-wrwp])
 F77=gfortran
 AC_PROG_F77([$F77 ])
 
