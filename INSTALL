@@ -1,0 +1,20 @@
+INSTALL instructions for
+BALTRAD WRWP MODULE
+
+Anders Henja and Günther Haase
+Swedish Meteorological and Hydrological Institute
+
+January 2013
+
+BALTRAD WRWP is completly dependent on a working RAVE installation so refer
+to RAVEs installation instructions before installing BALTRAD WRWP.
+You will also have to install LAPACK, BLAS and CBLAS for the numeric calculations.
+
+When you have successfully installed RAVE, LAPACK, BLAS and CBLAS, you should 
+only need to perform the traditional configure, make, make install.
+
+%> ./configure --prefix=/opt/baltrad/baltrad-wrwp --with-rave=/opt/baltrad/rave --with-lapack=... --with-cblas=....
+%> make
+%> make test
+%> make install
+

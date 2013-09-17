@@ -1,0 +1,16 @@
+*.pyc
+*~
+*.so
+*.o
+*.a
+.cproject
+.project
+.pydevproject
+.csettings
+.settings
+rave_config.h
+config.log
+config.status
+.dep
+def.mk
+Debug

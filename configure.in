@@ -1,0 +1,681 @@
+dnl	This file is an input file used by the GNU "autoconf" program to
+dnl	generate the file "configure", which is run during bRopo
+dnl	installation to configure the system for the local environment.
+
+AC_INIT([baltrad-wrwp],[0.1])
+
+if test "${prefix}" = "NONE"; then
+	prefix=/opt/baltrad/baltrad-wrwp
+fi
+
+AC_PROG_RANLIB
+AC_PROG_CC
+AC_PROG_CPP
+AC_SUBST(AR)
+AC_CHECK_PROGS(AR, ar aal, ar)
+
+LIBS=-lm
+
+dnl First verify that we have a proper rave installation. We can not live without it
+dnl
+RAVE_ROOT_DIR=
+RAVE_INCLUDE_FLAG=
+RAVE_LIB_FLAG=
+AC_ARG_WITH(rave,[  --with-rave=ROOT  The RAVE root installation directory],
+     ,withval=yes)
+case $withval in
+  no)
+    AC_MSG_ERROR(You cannot remove dependencies to RAVE);
+    ;;
+  *)
+    AC_MSG_CHECKING(for RAVE installation)
+    TMPDIR=
+    if [[ "yes" = "$withval" ]]; then
+      TMPFIL=`python -c "import _rave; print eval(\"_rave.__\"+\"file__\")" 2>&1 | head -1`
+      if [[ -f "$TMPFIL" ]]; then
+        TMPDIR=`echo "$TMPFIL" | sed -e"s/\/Lib\/_rave\.so//"`
+      fi
+    else
+      if [[ -d "$withval" -a -f "$withval/Lib/_rave.so" ]]; then
+        TMPDIR=$withval
+      fi
+    fi
+    if [[ "$TMPDIR" = "" ]]; then
+      AC_MSG_RESULT(not found)
+    else
+      AC_MSG_RESULT(found)
+      RAVE_ROOT_DIR=$TMPDIR
+    fi    
+    ;;
+esac
+
+if [[ "$RAVE_ROOT_DIR" = "" ]]; then
+  AC_MSG_ERROR("Could not identify a RAVE installation")
+fi
+
+AC_MSG_CHECKING(existance of RAVE build configuration)
+if [[ -f "$RAVE_ROOT_DIR/mkf/def.mk" ]]; then
+  RAVE_INCLUDE_FLAG=-I$RAVE_ROOT_DIR/include
+  RAVE_LIB_FLAG=-L$RAVE_ROOT_DIR/lib
+  AC_MSG_RESULT(found)
+else
+  AC_MSG_RESULT(not found);
+  AC_MSG_FAILURE(The RAVE installation does not contain def.mk. Is this an old installation);
+fi
+
+dnl Now we should extract some variables from raves def.mk file to give user a possibility to change
+dnl then when necessary
+AC_MSG_CHECKING(for RAVE cc compiler)
+RAVECC=`cat $RAVE_ROOT_DIR/mkf/def.mk | sed -n "/^CC=/p" | sed -n -e"s/^CC=[[ \t]]*\(.*\)/\1/p"`
+AC_MSG_RESULT($RAVECC)
+
+AC_MSG_CHECKING(for RAVE cc options)
+RAVECCOPTS=`cat $RAVE_ROOT_DIR/mkf/def.mk | sed -n "/^OPTS=/p" | sed -n -e"s/^OPTS=[[ 	]]*\(.*\)/\1/p"`
+AC_MSG_RESULT($RAVECCOPTS)
+
+dnl Remove strict prototype from cc options
+dnl
+AC_MSG_CHECKING(for cpp options)
+CPPOPTS=`echo "$RAVECCOPTS" | sed -e "s/-Wstrict-prototypes//"`
+AC_MSG_RESULT($CPPOPTS)
+
+AC_MSG_CHECKING(for RAVE ld flags)
+RAVELDFLAGS=`cat $RAVE_ROOT_DIR/mkf/def.mk | sed -n "/^LDFLAGS=/p" | sed -n -e"s/^LDFLAGS=[[ 	]]*\(.*\)/\1/p"`
+AC_MSG_RESULT($RAVELDFLAGS)
+
+AC_MSG_CHECKING(for RAVE shared flag)
+RAVECCSHARED=`cat $RAVE_ROOT_DIR/mkf/def.mk | sed -n "/^CCSHARED=/p" | sed -n -e"s/^CCSHARED=[[ 	]]*\(.*\)/\1/p"`
+AC_MSG_RESULT($RAVECCSHARED)
+
+AC_MSG_CHECKING(for Python include flag)
+PYTHON_INCLUDE_FLAG=`cat $RAVE_ROOT_DIR/mkf/def.mk | sed -n "/^INCLUDE_PYTHON=/p" | sed -n -e"s/^INCLUDE_PYTHON=[[ 	]]*\(.*\)/\1/p"`
+AC_MSG_RESULT($INCLUDE_PYTHON)
+
+AC_MSG_CHECKING(for numpy include flag)
+NUMPY_INCLUDE_FLAG=`cat $RAVE_ROOT_DIR/mkf/def.mk | sed -n "/^NUMPY_INCLUDE_DIR=/p" | sed -n -e"s/^NUMPY_INCLUDE_DIR=[[ 	]]*\(.*\)/\1/p"`
+AC_MSG_RESULT($PROJ_INCLUDE_FLAG)
+
+AC_MSG_CHECKING(for proj include flag used by RAVE)
+PROJ_INCLUDE_FLAG=`cat $RAVE_ROOT_DIR/mkf/def.mk | sed -n "/^PROJ_INCLUDE_DIR=/p" | sed -n -e"s/^PROJ_INCLUDE_DIR=[[ 	]]*\(.*\)/\1/p"`
+AC_MSG_RESULT($PROJ_INCLUDE_FLAG)
+
+AC_MSG_CHECKING(for proj library flag used by RAVE)
+PROJ_LIBRARY_FLAG=`cat $RAVE_ROOT_DIR/mkf/def.mk | sed -n "/^PROJ_LIB_DIR=/p" | sed -n -e"s/^PROJ_LIB_DIR=[[ 	]]*\(.*\)/\1/p"`
+AC_MSG_RESULT($PROJ_INCLUDE_FLAG)
+
+AC_MSG_CHECKING(for expat include flag used by RAVE)
+EXPAT_INCLUDE_FLAG=`cat $RAVE_ROOT_DIR/mkf/def.mk | sed -n "/^EXPAT_INCLUDE_DIR=/p" | sed -n -e"s/^EXPAT_INCLUDE_DIR=[[ 	]]*\(.*\)/\1/p"`
+AC_MSG_RESULT($EXPAT_INCLUDE_FLAG)
+
+AC_MSG_CHECKING(for expat library flag used by RAVE)
+EXPAT_LIBRARY_FLAG=`cat $RAVE_ROOT_DIR/mkf/def.mk | sed -n "/^EXPAT_LIB_DIR=/p" | sed -n -e"s/^EXPAT_LIB_DIR=[[ 	]]*\(.*\)/\1/p"`
+AC_MSG_RESULT($EXPAT_INCLUDE_FLAG)
+
+AC_MSG_CHECKING(if expat is supressed)
+EXPAT_SUPPRESSED=`cat $RAVE_ROOT_DIR/mkf/def.mk | sed -n "/^EXPAT_SUPPRESSED=/p" | sed -n -e"s/^EXPAT_SUPPRESSED=[[ 	]]*\(.*\)/\1/p"`
+AC_MSG_RESULT($EXPAT_SUPPRESSED)
+
+AC_MSG_CHECKING(for hlhdf include flag used by RAVE)
+HLHDF_INCLUDE_FLAG=-I`cat $RAVE_ROOT_DIR/mkf/def.mk | sed -n "/^HLHDF_INCLUDE_DIR=/p" | sed -n -e"s/^HLHDF_INCLUDE_DIR=[[ 	]]*\(.*\)/\1/p"`
+AC_MSG_RESULT($HLHDF_INCLUDE_FLAG)
+
+AC_MSG_CHECKING(for hlhdf library flag used by RAVE)
+HLHDF_LIBRARY_FLAG=-L`cat $RAVE_ROOT_DIR/mkf/def.mk | sed -n "/^HLHDF_LIB_DIR=/p" | sed -n -e"s/^HLHDF_LIB_DIR=[[ 	]]*\(.*\)/\1/p"`
+AC_MSG_RESULT($HLHDF_LIBRARY_FLAG)
+
+AC_MSG_CHECKING(for hlhdf config file)
+HLHDF_MK_FILE=`cat $RAVE_ROOT_DIR/mkf/def.mk | sed -n "/^HLHDF_HLDEF_MK_FILE=/p" | sed -n -e"s/^HLHDF_HLDEF_MK_FILE=[[ 	]]*\(.*\)/\1/p"`
+AC_MSG_RESULT($HLHDF_MK_FILE)
+
+AC_MSG_CHECKING(for hlhdf ld shared)
+HLHDFLDSHARED=`cat $HLHDF_MK_FILE | sed -n "/^LDSHARED=/p" | sed -n -e"s/^LDSHARED=[[ 	]]*\(.*\)/\1/p"`
+AC_MSG_RESULT($HLHDFLDSHARED)
+
+AC_MSG_CHECKING(for g++ ld shared options)
+LDCPPSHARED=`echo "$HLHDFLDSHARED" | awk '{$1=""}1'`
+AC_MSG_RESULT($LDCPPSHARED)
+
+AC_MSG_CHECKING(for hdf5 software used by hlhdf)
+HLHDF_HDF5_LIB=`cat $HLHDF_MK_FILE | sed -n "/^HDF5_LIBDIR=/p" | sed -n -e"s/^HDF5_LIBDIR=[[ 	]]*\(.*\)/\1/p"`
+AC_MSG_RESULT($HLHDF_HDF5_LIB)
+
+AC_MSG_CHECKING(for zlib software used by hlhdf)
+HLHDF_ZLIB_LIB=`cat $HLHDF_MK_FILE | sed -n "/^ZLIB_LIBDIR=/p" | sed -n -e"s/^ZLIB_LIBDIR=[[ 	]]*\(.*\)/\1/p"`
+AC_MSG_RESULT($HLHDF_ZLIB_LIB)
+
+AC_MSG_CHECKING(for szlib software used by hlhdf)
+HLHDF_SZLIB_LIB=`cat $HLHDF_MK_FILE | sed -n "/^SZLIB_LIBDIR=/p" | sed -n -e"s/^SZLIB_LIBDIR=[[ 	]]*\(.*\)/\1/p"`
+AC_MSG_RESULT($HLHDF_SZLIB_LIB)
+
+dnl Generate the ld library printout
+dnl
+LD_PRINTOUT=$prefix/lib
+if [[ "$RAVE_LIB_FLAG" != "" ]]; then
+  LD_PRINTOUT=$LD_PRINTOUT:`echo "$RAVE_LIB_FLAG" | sed -e"s/[[ \t]]*-L//"`
+fi
+
+if [[ "$HLHDF_LIBRARY_FLAG" != "" ]]; then
+  LD_PRINTOUT=$LD_PRINTOUT:`echo "$HLHDF_LIBRARY_FLAG" | sed -e"s/[[ \t]]*-L//"`
+fi
+
+if [[ "$HLHDF_HDF5_LIB" != "" ]]; then
+  LD_PRINTOUT=$LD_PRINTOUT:`echo "$HLHDF_HDF5_LIB" | sed -e"s/[[ \t]]*-L//"`
+fi
+
+if [[ "$PROJ_LIB_FLAG" != "" ]]; then
+  LD_PRINTOUT=$LD_PRINTOUT:`echo "$PROJ_LIB_FLAG" | sed -e"s/[[ \t]]*-L//"`
+fi
+
+if [[ "$EXPAT_LIBRARY_FLAG" != "" ]]; then
+  LD_PRINTOUT=$LD_PRINTOUT:`echo "$EXPAT_LIBRARY_FLAG" | sed -e"s/[[ \t]]*-L//"`
+fi
+
+if [[ "$HLHDF_ZLIB_LIB" != "" ]]; then
+  LD_PRINTOUT=$LD_PRINTOUT:`echo "$HLHDF_ZLIB_LIB" | sed -e"s/[[ \t]]*-L//"`
+fi
+
+if [[ "$HLHDF_SZLIB_LIB" != "" ]]; then
+  LD_PRINTOUT=$LD_PRINTOUT:`echo "$HLHDF_SZLIB_LIB" | sed -e"s/[[ \t]]*-L//"`
+fi
+
+dnl We need BLAS, CBLAS and LAPACK(E) as well, so we start figuring out where to find them. We need
+dnl to do it in the order, BLAS, CBLAS and LAPACK but first, do we have fortran or gfortran available.
+dnl AC_FC_LIBRARY_LDFLAGS
+AC_MSG_RESULT([Setting F77=gfortran, needed for acpg])
+F77=gfortran
+AC_PROG_F77([$F77 ])
+
+AC_MSG_CHECKING([system version])
+system=`uname -s`-`uname -r`
+if test "$?" -ne 0; then
+    AC_MSG_RESULT([unknown (can't find uname command)])
+    system=unknown
+else
+    # Special check for weird MP-RAS system (uname returns weird
+    # results, and the version is kept in special file).
+    
+    if test -r /etc/.relid -a "X`uname -n`" = "X`uname -s`" ; then
+        #system=MP-RAS-`awk '{print $3}' /etc/.relid'`
+	system=MP-RAS-`awk '{print $3}' /etc/.relid`
+    fi
+    if test "`uname -s`" = "AIX" ; then
+	system=AIX-`uname -v`.`uname -r`
+    fi
+    AC_MSG_RESULT($system)
+fi
+
+dnl While digging out fortran information, keep LIBS saved"
+saved_LIBS="$LIBS"
+
+TMPFOUNDCOMPINFO=0
+TMPCOMPINFO=`$F77 -V 2>/dev/null`
+if test $? -eq 0; then
+  TMPFOUNDCOMPINFO=1
+fi
+
+TMPCOMPILERNAME=`echo $TMPCOMPINFO | cut -d' ' -f1-2`
+TMPCOMPILERNAME=$F77
+
+# Set the Fortran linker flags
+if [[ "x$COMPILE_FOR_FORTRAN" != "xno" ]]; then
+  try_ok=no
+  # Check the fortran libraries, so that they can be loaded
+  case $system in
+    OSF1*)
+      FDFLAGS=-nofor_main
+      FFLAGS="-C -O3 -fast -fpe2"
+      EXTRA_LIBS=
+      ;;
+    SunO*)
+      FFLAGS=-O3
+      FDFLAGS=
+      EXTRA_LIBS=-lsunmath
+      ;;
+    Linux*)
+      case $TMPCOMPILERNAME in
+      	pgf90*)
+      	  FDFLAGS=-Mnomain
+          FFLAGS="-O3"
+      	  EXTRA_LIBS=
+	      ;;
+       	ifort*)
+      	  FDFLAGS=-nofor_main
+          FFLAGS="-O3"
+      	  EXTRA_LIBS=
+          ;;
+       	ifc*)
+      	  FDFLAGS=-nofor_main
+          FFLAGS="-O3"
+      	  EXTRA_LIBS=
+	      ;;
+        gfortran*)
+      	  FDFLAGS=
+          if [[ "x$bit64" = "xyes" ]]; then
+            FFLAGS="${FFLAGS} -fPIC -fno-automatic -ffixed-line-length-none"
+          else
+            FFLAGS="${FFLAGS} -fno-automatic -ffixed-line-length-none"
+          fi
+      	  EXTRA_LIBS=
+      	  ;;
+	    *)
+	      AC_MSG_RESULT("The configure cant determine what fortran linker options to use on $system")
+      	  ;;  
+      esac
+      ;;
+    *)
+      AC_MSG_RESULT("The configure cant determine what fortran library that should be used on $system")
+      ;;
+  esac
+fi
+
+# When trying to use AC_F77_LIBRARY_LDFLAGS it fails so we try it on our own
+
+C_FORTRAN_LINK_LIBS=
+FORTRAN_CLINK_LIBS=
+FORTRAN_CLINK_LDFLAG=
+if [[ "x$COMPILE_FOR_FORTRAN" != "xno" ]]; then
+  # What fortran compiler is it?
+  
+  try_ok=no
+  LIBS=
+  LDFLAGS=
+  # Step 3: Check the fortran libraries, so that they can be loaded
+  case $system in
+    Linux*)
+     case $TMPCOMPILERNAME in
+       pgf90*)
+         TMPLDPATH=`which pgf90 | sed -e"s/bin\/pgf90/lib/g"`
+         LDFLAGS=-L$TMPLDPATH
+         LIBS="$LINKER_FORCED_STATIC -lg2c -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpgc $LINKER_FORCED_SHARED"
+         ;;
+       ifc*)
+         TMPLDPATH=`which ifc | sed -e"s/bin\/ifc/lib/g"`
+         LDFLAGS=-L$TMPLDPATH
+         FFLAGS="${FFLAGS} -cm -WB -w90 -w95"
+         LIBS="$FC_LINKER_FORCED_STATIC -lIEPCF90 -lintrins -lF90 -limf $FC_LINKER_FORCED_SHARED"
+         ;;
+       ifort*)
+         TMPLDPATH=`which ifort | sed -e"s/bin\/ifort/lib/g"`
+         LDFLAGS=-L$TMPLDPATH
+         FFLAGS="${FFLAGS} -fpp -save -132 -w90 -w95 -cm"
+         LIBS="$FC_LINKER_FORCED_STATIC -lifport -limf -lcxa -lcprts -lunwind -lguide -lguide_stats -lifcoremt -lifcore -lirc $FC_LINKER_FORCED_SHARED"
+         ;;
+       gfortran*)
+	     if [[ "x$bit64" = "xyes" ]]; then
+           TMPLDPATH=`which gfortran | sed -e"s/bin\/gfortran/lib64/g"`
+         else
+           TMPLDPATH=`which gfortran | sed -e"s/bin\/gfortran/lib/g"`
+         fi
+         LDFLAGS=-L$TMPLDPATH
+         LIBS="$LINKER_FORCED_SHARED -lgfortran"
+         FDFLAGS=
+         ;;
+       *)
+         AC_MSG_RESULT("The configure cant determine what settings are needed on $system with compiler $TMPCOMPILERNAME")
+         ;;
+     esac
+     if [[ "x$LDFLAGS" != "x" ]]; then
+       AC_MSG_CHECKING([Linker Options for $TMPCOMPILERNAME on $system with $LDFLAGS $LIBS])
+       AC_TRY_RUN([
+#include <stdio.h>
+main()
+{
+  int i;
+  return 0;
+}],try_ok=yes,try_ok=no,try_ok=no)
+     fi
+     if [[ "x$try_ok" = "xyes" ]]; then
+       AC_MSG_RESULT(Yes)
+       C_FORTRAN_LINK_LIBS="$LIBS"
+       FORTRAN_CLINK_LIBS="$LIBS"
+       FORTRAN_CLINK_LDFLAG="$LDFLAGS"
+     else
+       AC_MSG_RESULT(No try do it manually)
+     fi
+     ;;
+    OSF1*)
+     C_FORTRAN_LINK_LIBS=-lfor
+     FORTRAN_CLINK_LIBS=-lfor
+     ;;
+    SunO*)
+     C_FORTRAN_LINK_LIBS="-lf77compat -lfsu -lsunmath -lfui"
+     FORTRAN_CLINK_LIBS="-lf77compat -lfsu -lsunmath -lfui"
+     ;;
+    *)
+     AC_MSG_RESULT("The configure cant determine what fortran library that should be used on $system")
+     ;;
+  esac
+fi
+
+AC_LANG(Fortran 77)
+	
+dnl I have to force the suffix to be .F90 to know how the
+dnl actual fortran code will behave, some compilers differs
+dnl in how they work depending on the suffix, for example
+dnl this is the case with the Portland Group fortran compilers.
+ac_ext=F90
+
+dnl Check what linker options that has to be used to force dynamic and static
+dnl linking when using the fortran compiler.
+dnl Currently only supported are -Bstatic/-Bdynamic
+dnl and -no_so/-so_archive
+dnl Also, the first to try should be -Xlinker -Bdynamic and
+dnl -Xlinker -Bstatic since the gnu compiler behaves a bit
+dnl different and just warns when options not are supported.
+FC_LINKER_FORCED_SHARED=""
+FC_LINKER_FORCED_STATIC=""
+
+LIBS="-Xlinker -Bstatic -Xlinker -Bdynamic"
+
+AC_MSG_CHECKING(Fortran Linker options ($LIBS))
+AC_TRY_RUN([
+    PROGRAM CONFTEST
+    IMPLICIT real*8 (A-H, O-Z)
+    END
+],try_ok=yes,try_ok=no,try_ok=no)
+
+if [[ "x$try_ok" = "xyes" ]]; then
+  AC_MSG_RESULT("Yes")
+  FC_LINKER_FORCED_SHARED="-Xlinker -Bdynamic"
+  FC_LINKER_FORCED_STATIC="-Xlinker -Bstatic"
+else
+  AC_MSG_RESULT("No")
+fi
+
+if [[ "x$FC_LINKER_FORCED_SHARED" = "x" ]]; then
+  LIBS="-no_so -so_archive"
+  AC_MSG_CHECKING(Fortran Linker options ($LIBS))
+  AC_TRY_RUN([
+    PROGRAM CONFTEST
+    IMPLICIT real*8 (A-H, O-Z)
+    END
+],try_ok=yes,try_ok=no,try_ok=no)
+
+  if [[ "x$try_ok" = "xyes" ]]; then
+    AC_MSG_RESULT("Yes")
+    FC_LINKER_FORCED_SHARED="-so_archive"
+    FC_LINKER_FORCED_STATIC="-no_so"
+  else
+    AC_MSG_RESULT("No")
+  fi
+fi
+
+if [[ "x$FC_LINKER_FORCED_SHARED" = "x" ]]; then
+  LIBS="-Bstatic -Bdynamic"
+  AC_MSG_CHECKING(Fortran Linker options ($LIBS))
+  AC_TRY_RUN([
+    PROGRAM CONFTEST
+    IMPLICIT real*8 (A-H, O-Z)
+    END
+],try_ok=yes,try_ok=no,try_ok=no)
+
+  if [[ "x$try_ok" = "xyes" ]]; then
+    AC_MSG_RESULT("Yes")
+    FC_LINKER_FORCED_SHARED="-Bdynamic"
+    FC_LINKER_FORCED_STATIC="-Bstatic"
+  else
+    AC_MSG_RESULT("No")
+  fi
+fi
+
+if [[ "x$FC_LINKER_FORCED_SHARED" = "x" ]]; then
+  LIBS="-static -dynamic"
+  AC_MSG_CHECKING(Fortran Linker options ($LIBS))
+  AC_TRY_RUN([
+    PROGRAM CONFTEST
+    IMPLICIT real*8 (A-H, O-Z)
+    END
+],try_ok=yes,try_ok=no,try_ok=no)
+
+  if [[ "x$try_ok" = "xyes" ]]; then
+    AC_MSG_RESULT("Yes")
+    FC_LINKER_FORCED_SHARED="-dynamic"
+    FC_LINKER_FORCED_STATIC="-static"
+  else
+    AC_MSG_RESULT("No")
+  fi
+fi
+
+LD_FORCE_STATIC=$FC_LINKER_FORCED_STATIC
+LD_FORCE_SHARE=$FC_LINKER_FORCED_SHARED
+AC_MSG_RESULT([Setting LD_FORCE_STATIC =  $LD_FORCE_STATIC])
+AC_MSG_RESULT([Setting LD_FORCE_SHARE = $LD_FORCE_SHARE])
+
+AC_LANG(C)
+LIBS="$saved_LIBS"
+
+LIBS="$FORTRAN_CLINK_LIBS $LIBS"
+LDFLAGS="$FORTRAN_CLINK_LDFLAG $LDFLAGS"
+
+dnl       C_FORTRAN_LINK_LIBS="$LIBS"
+dnl       FORTRAN_CLINK_LIBS="$LIBS"
+dnl       FORTRAN_CLINK_LDFLAG="$LDFLAGS"
+
+BLAS_LIB_DIR=
+GOT_BLAS_LIB=no
+AC_ARG_WITH(blas, [ --with-blas=LIBDIR       Use the blas library],
+            ,withval=yes)
+case $withval in
+  yes)
+    AC_CHECK_LIB(blas,sasum_,GOT_BLAS_LIB=yes)
+    ;;
+  no)
+    AC_MSG_ERROR(You cannot remove dependencies to BLAS);
+    ;;
+  *)
+    if [[ "$withval" != "" ]]; then
+      saved_LDFLAGS="$LDFLAGS"
+      LDFLAGS="$LDFLAGS -L$withval"
+      AC_CHECK_LIB(blas, sasum_, GOT_BLAS_LIB=yes)
+      if [[ "$GOT_BLAS_LIB" = "yes" ]]; then
+        BLAS_LIB_DIR="-L$withval"
+      else
+        LDFLAGS="$saved_LDFLAGS"
+      fi
+    else
+      AC_MSG_ERROR("Odd argument passed for BLAS")
+    fi
+    ;;  
+esac            
+
+if [[ "$GOT_BLAS_LIB" = "no" ]]; then
+  AC_MSG_ERROR("Could not successfully find the blas library")
+fi
+
+dnl Both CBLAS and LAPACKE needs CBLAS
+LDFLAGS="$BLAS_LIB_DIR $LDFLAGS"
+LIBS="-lblas $LIBS"
+
+CBLAS_INC_DIR=
+CBLAS_LIB_DIR=
+GOT_CBLAS_INC=no
+GOT_CBLAS_LIB=no
+AC_ARG_WITH(cblas, [ --with-cblas=ROOT or INC,LIB       Use the cblas library],
+            ,withval=yes)
+case $withval in
+  yes)
+    AC_CHECK_HEADERS(cblas.h,GOT_CBLAS_INC=yes)
+    AC_CHECK_LIB(cblas,cblas_sasum,GOT_CBLAS_LIB=yes)
+    ;;
+  no)
+    AC_MSG_ERROR(You cannot remove dependencies to CBLAS);
+    ;;
+  *)
+    if [[ "$withval" != "" ]]; then
+      if [[ "`echo $withval | grep ','`" = "" ]]; then
+        cblas_inc="$withval/include"
+        cblas_lib="$withval/lib"
+      else
+        cblas_inc="`echo $withval |cut -f1 -d,`"
+        cblas_lib="`echo $withval |cut -f2 -d,`"
+      fi
+      
+      if [[ "$cblas_inc" != "" ]]; then
+        saved_CPPFLAGS="$CPPFLAGS"
+        CPPFLAGS="$CPPFLAGS -I$cblas_inc"
+        AC_CHECK_HEADERS(cblas.h,GOT_CBLAS_INC=yes)
+        if [[ "$GOT_CBLAS_INC" = "yes" ]]; then
+          CBLAS_INCLUDE_DIR="-I$cblas_inc"
+        else
+          CPPFLAGS="$saved_CPPFLAGS"
+        fi
+      else
+        AC_CHECK_HEADERS(cblas.h,GOT_CBLAS_INC=yes)
+      fi
+
+      if [[ "$cblas_lib" != "" ]]; then
+        saved_LDFLAGS="$LDFLAGS"
+        LDFLAGS="$LDFLAGS -L$cblas_lib"
+        AC_CHECK_LIB(cblas, cblas_sasum, GOT_CBLAS_LIB=yes)
+        if [[ "$GOT_CBLAS_LIB" = "yes" ]]; then
+          CBLAS_LIB_DIR="-L$cblas_lib"
+        else
+          LDFLAGS="$saved_LDFLAGS"
+        fi
+      else
+        AC_CHECK_LIB(cblas, cblas_sasum, GOT_CBLAS_LIB=yes)
+      fi
+    else
+      AC_MSG_ERROR("Odd argument passed for CBLAS")
+    fi
+    ;;
+esac
+
+if [[ "$GOT_CBLAS_INC" = "no" -o "$GOT_CBLAS_LIB" = "no" ]]; then
+  AC_MSG_ERROR("Could not successfully find the cblas library")
+fi
+
+dnl LAPACKE needs CBLAS
+LDFLAGS="$CBLAS_LIB_DIR $LDFLAGS"
+LIBS="-lcblas $LIBS"
+
+dnl Now we need to locate lapack that just is a library
+LAPACK_LIB_DIR=
+GOT_LAPACK_LIB=no
+AC_ARG_WITH(lapack, [ --with-lapack=LIBDIR       Use the lapack library],
+            ,withval=yes)
+case $withval in
+  yes)
+    AC_CHECK_LIB(lapack,dgels_,GOT_LAPACK_LIB=yes)
+    ;;
+  no)
+    AC_MSG_ERROR(You cannot remove dependencies to LAPACK);
+    ;;
+  *)
+    if [[ "$withval" != "" ]]; then
+      saved_LDFLAGS="$LDFLAGS"
+      LDFLAGS="$LDFLAGS -L$withval"
+      AC_CHECK_LIB(lapack,dgels_,GOT_LAPACK_LIB=yes)
+      if [[ "$GOT_LAPACK_LIB" = "yes" ]]; then
+        LAPACK_LIB_DIR="-L$withval"
+      else
+        LDFLAGS="$saved_LDFLAGS"
+      fi
+    else
+      AC_MSG_ERROR("Odd argument passed for LAPACK")
+    fi
+    ;;  
+esac            
+
+if [[ "$GOT_LAPACK_LIB" = "no" ]]; then
+  AC_MSG_ERROR("Could not successfully find the lapack library")
+fi
+
+LIBS="-llapack $LIBS"
+LDFLAGS="$LAPACK_LIB_DIR $LDFLAGS"
+
+dnl We also need to locate lapack(e)
+LACPACKE_INCLUDE_DIR=
+LAPACKE_LIB_DIR=
+GOT_LAPACKE_INC=no
+GOT_LAPACKE_LIB=no
+AC_ARG_WITH(lapacke,[  --with-lapacke=ROOT or INC,LIB       Use the lapacke library],
+    ,withval=yes)
+dnl LDFLAGS="$LDFLAGS -L/projects/baltrad/SMHI_WRWP/CBLAS/lib -L/projects/baltrad/SMHI_WRWP/BLAS" 
+dnl CPPFLAGS="$CFLAGS -I/projects/baltrad/SMHI_WRWP/CBLAS/include -I/projects/baltrad/SMHI_WRWP/lapack-3.4.2/lapacke/include"
+dnl LIBS="$LIBS -llapack -lcblas -lblas -lgfortran -lm"
+case $withval in
+  yes)
+    AC_CHECK_HEADERS(lapacke.h,GOT_LAPACKE_INC=yes)
+    AC_CHECK_LIB(lapacke,LAPACKE_dgels,GOT_LAPACKE_LIB=yes)
+    ;;
+  no)
+    AC_MSG_ERROR(You cannot remove dependencies to LAPACK);
+    ;;
+  *)
+    if [[ "$withval" != "" ]]; then
+      if [[ "`echo $withval | grep ','`" = "" ]]; then
+        lapacke_inc="$withval/include"
+        lapacke_lib="$withval/lib"
+      else
+        lapacke_inc="`echo $withval |cut -f1 -d,`"
+        lapacke_lib="`echo $withval |cut -f2 -d,`"
+      fi
+      
+      if [[ "$lapacke_inc" != "" ]]; then
+        saved_CPPFLAGS="$CPPFLAGS"
+        CPPFLAGS="$CPPFLAGS -I$lapacke_inc"
+        AC_CHECK_HEADERS(lapacke.h,GOT_LAPACKE_INC=yes)
+        if [[ "$GOT_LAPACKE_INC" = "yes" ]]; then
+          LAPACKE_INCLUDE_DIR="-I$lapacke_inc"
+        else
+          CPPFLAGS="$saved_CPPFLAGS"
+        fi
+      else
+        AC_CHECK_HEADERS(lapacke.h,GOT_LAPACKE_INC=yes)
+      fi
+
+      if [[ "$lapacke_lib" != "" ]]; then
+        saved_LDFLAGS="$LDFLAGS"
+        LDFLAGS="$LDFLAGS -L$lapacke_lib"
+        AC_CHECK_LIB(lapack, dgels_, GOT_LAPACKE_LIB=yes)
+        AC_CHECK_LIB(lapacke, LAPACKE_dgels, GOT_LAPACKE_LIB=yes)
+        if [[ "$GOT_LAPACKE_LIB" = "yes" ]]; then
+          LAPACKE_LIB_DIR="-L$lapacke_lib"
+        else
+          LDFLAGS="$saved_LDFLAGS"
+        fi
+      else
+        AC_CHECK_LIB(lapacke, LAPACKE_dgels, GOT_LAPACKE_LIB=yes)
+      fi
+    else
+      AC_MSG_ERROR("Odd argument passed for lapacke")
+    fi
+    ;;
+esac
+
+if [[ "$GOT_LAPACKE_INC" = "no" -o "$GOT_LAPACKE_LIB" = "no" ]]; then
+  AC_MSG_ERROR("Could not successfully find the lapacke library")
+fi
+
+AC_SUBST(FORTRAN_CLINK_LIBS)
+AC_SUBST(FORTRAN_CLINK_LDFLAG)
+AC_SUBST(BLAS_LIB_DIR)
+AC_SUBST(CBLAS_INCLUDE_DIR)
+AC_SUBST(CBLAS_LIB_DIR)
+AC_SUBST(LAPACK_LIB_DIR)
+AC_SUBST(LAPACKE_INCLUDE_DIR)
+AC_SUBST(LAPACKE_LIB_DIR)
+
+AC_SUBST(RAVE_ROOT_DIR)
+AC_SUBST(RAVE_INCLUDE_FLAG)
+AC_SUBST(RAVE_LIB_FLAG)
+AC_SUBST(RAVECC)
+AC_SUBST(RAVECCOPTS)
+AC_SUBST(RAVELDFLAGS)
+AC_SUBST(RAVECCSHARED)
+AC_SUBST(PYTHON_INCLUDE_FLAG)
+AC_SUBST(NUMPY_INCLUDE_FLAG)
+AC_SUBST(PROJ_INCLUDE_FLAG)
+AC_SUBST(PROJ_LIBRARY_FLAG)
+AC_SUBST(EXPAT_INCLUDE_FLAG)
+AC_SUBST(EXPAT_LIBRARY_FLAG)
+AC_SUBST(EXPAT_SUPPRESSED)
+AC_SUBST(HLHDF_INCLUDE_FLAG)
+AC_SUBST(HLHDF_LIBRARY_FLAG)
+AC_SUBST(HLHDFLDSHARED)
+AC_SUBST(LD_PRINTOUT)
+
+dnl AC_CONFIG_FILES(def.mk lib/config.h)
+AC_CONFIG_FILES(def.mk)
+AC_OUTPUT
