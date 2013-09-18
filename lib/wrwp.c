@@ -16,6 +16,7 @@ along with HLHDF.  If not, see <http://www.gnu.org/licenses/>.
 ------------------------------------------------------------------------*/
 
 /** Function for deriving weather radar wind and reflectivity profiles
+ *
  * @file
  * @author Gunther Haase, SMHI
  * @date 2013-02-06
