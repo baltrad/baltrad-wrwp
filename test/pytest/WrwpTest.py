@@ -25,6 +25,7 @@ Tests the wrwp module.
 '''
 
 import unittest
+import string
 import _wrwp
 import _helpers
 
@@ -35,8 +36,73 @@ class WrwpTest(unittest.TestCase):
   def tearDown(self):
     pass
 
-  def testWrwp(self):
-    pass
+  def test_new(self):
+    obj = _wrwp.new()
+    self.assertNotEqual(-1, string.find(`type(obj)`, "WrwpCore"))
 
+  def test_dz(self):
+    obj = _wrwp.new()
+    self.assertEquals(200, obj.dz)
+    obj.dz = 100
+    self.assertEquals(100, obj.dz)
+    try:
+      obj.dz = 200.0
+      self.fail("Expected TypeError")
+    except TypeError, e:
+      pass
+    self.assertEquals(100, obj.dz)
+
+  def test_hmax(self):
+    obj = _wrwp.new()
+    self.assertEquals(12000, obj.hmax)
+    obj.hmax = 100
+    self.assertEquals(100, obj.hmax)
+    try:
+      obj.hmax = 200.0
+      self.fail("Expected TypeError")
+    except TypeError, e:
+      pass
+    self.assertEquals(100, obj.hmax)
+
+  def test_dmin(self):
+    obj = _wrwp.new()
+    self.assertEquals(4000, obj.dmin)
+    obj.dmin = 100
+    self.assertEquals(100, obj.dmin)
+    try:
+      obj.dmin = 200.0
+      self.fail("Expected TypeError")
+    except TypeError, e:
+      pass
+    self.assertEquals(100, obj.dmin)
+    
+  def test_dmax(self):
+    obj = _wrwp.new()
+    self.assertEquals(40000, obj.dmax)
+    obj.dmax = 100
+    self.assertEquals(100, obj.dmax)
+    try:
+      obj.dmax = 200.0
+      self.fail("Expected TypeError")
+    except TypeError, e:
+      pass
+    self.assertEquals(100, obj.dmax)
+
+  def test_emin(self):
+    obj = _wrwp.new()
+    self.assertAlmostEquals(2.5, obj.emin, 4)
+    obj.emin = 3.5
+    self.assertAlmostEquals(3.5, obj.emin, 4)
+    obj.emin = 4
+    self.assertAlmostEquals(4.0, obj.emin, 4)
+
+  def test_vmin(self):
+    obj = _wrwp.new()
+    self.assertAlmostEquals(2.0, obj.vmin, 4)
+    obj.vmin = 3.5
+    self.assertAlmostEquals(3.5, obj.vmin, 4)
+    obj.vmin = 4
+    self.assertAlmostEquals(4.0, obj.vmin, 4)
+    
 if __name__ == "__main__":
   unittest.main()

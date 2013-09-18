@@ -18,10 +18,11 @@ along with HLHDF.  If not, see <http://www.gnu.org/licenses/>.
 
 /** Main function for deriving weather radar wind and reflectivity profiles
  * @file
- * @author Günther Haase, SMHI
+ * @author Gï¿½nther Haase, SMHI
  * @date 2011-11-29
  */
 int main (int argc,char *argv[]) {
+#ifdef KALLE
 	RaveIO_t* raveio = RaveIO_open (argv[1]);
 	PolarVolume_t* inobj = NULL;
 	PolarVolume_t* result = NULL;
@@ -54,6 +55,6 @@ int main (int argc,char *argv[]) {
 	RAVE_OBJECT_RELEASE (raveio);
 	RAVE_OBJECT_RELEASE (inobj);
 	RAVE_OBJECT_RELEASE (result);
-
+#endif
 	exit (0);
 }

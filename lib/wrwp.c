@@ -23,9 +23,123 @@ along with HLHDF.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "wrwp.h"
+#include "rave_debug.h"
+#include "rave_alloc.h"
+#include <string.h>
 
-PolarVolume_t* wrwp(PolarVolume_t* inobj) {
-	PolarVolume_t* result = NULL;
+/**
+ * Represents one wrwp generator
+ */
+struct _Wrwp_t {
+  RAVE_OBJECT_HEAD /** Always on top */
+  int dz; /**< Height interval for deriving a profile [m] */
+  int hmax; /**< Maximum height of the profile [m] */
+  int dmin; /**< Minimum distance for deriving a profile [m] */
+  int dmax; /**< Maximum distance for deriving a profile [m]*/
+  double emin; /**< Minimum elevation angle [deg] */
+  double vmin; /**< Radial velocity threshold [m/s] */
+};
+
+/*@{ Private functions */
+/**
+ * Constructor
+ */
+static int Wrwp_constructor(RaveCoreObject* obj)
+{
+  Wrwp_t* wrwp = (Wrwp_t*)obj;
+  wrwp->hmax = HMAX;
+  wrwp->dz = DZ;
+  wrwp->dmin = DMIN;
+  wrwp->dmax = DMAX;
+  wrwp->emin = EMIN;
+  wrwp->vmin = VMIN;
+  return 1;
+}
+
+/**
+ * Destructor
+ */
+static void Wrwp_destructor(RaveCoreObject* obj)
+{
+}
+
+/*@} End of Private functions */
+
+/*@{ Interface functions */
+void Wrwp_setDZ(Wrwp_t* self, int dz)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  self->dz = dz;
+}
+
+int Wrwp_getDZ(Wrwp_t* self)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  return self->dz;
+}
+
+void Wrwp_setHMAX(Wrwp_t* self, int hmax)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  self->hmax = hmax;
+}
+
+int Wrwp_getHMAX(Wrwp_t* self)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  return self->hmax;
+}
+
+void Wrwp_setDMIN(Wrwp_t* self, int dmin)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  self->dmin = dmin;
+}
+
+int Wrwp_getDMIN(Wrwp_t* self)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  return self->dmin;
+}
+
+void Wrwp_setDMAX(Wrwp_t* self, int dmax)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  self->dmax = dmax;
+}
+
+int Wrwp_getDMAX(Wrwp_t* self)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  return self->dmax;
+}
+
+void Wrwp_setEMIN(Wrwp_t* self, double emin)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  self->emin = emin;
+}
+
+double Wrwp_getEMIN(Wrwp_t* self)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  return self->emin;
+}
+
+void Wrwp_setVMIN(Wrwp_t* self, double vmin)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  self->vmin = vmin;
+}
+
+double Wrwp_getVMIN(Wrwp_t* self)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  return self->vmin;
+}
+
+VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj) {
+  VerticalProfile_t* result = NULL;
 	PolarScan_t* scan = NULL;
 	PolarScanParam_t* vrad = NULL;
 	PolarScanParam_t* dbz = NULL;
@@ -36,12 +150,12 @@ PolarVolume_t* wrwp(PolarVolume_t* inobj) {
 	double d, h;
 	double alpha, beta, gamma, vvel, vdir, vstd, zsum, zmean, zstd;
 
-	result = RAVE_OBJECT_COPY (inobj);
+	result = RAVE_OBJECT_NEW (&VerticalProfile_TYPE);
 	polnav = RAVE_OBJECT_NEW (&PolarNavigator_TYPE);
 	nscans = PolarVolume_getNumberOfScans (inobj);
 
 	// loop over atmospheric layers
-	for (iz=0; iz<HMAX; iz+=DZ) {
+	for (iz=0; iz<self->hmax; iz+=self->dz) {
 
 		/* allocate memory and initialize with zeros */
 		double *A = RAVE_CALLOC ((size_t)(NOR*NOC), sizeof (double));
@@ -79,8 +193,8 @@ PolarVolume_t* wrwp(PolarVolume_t* inobj) {
 					for (ib=0; ib<nbins; ib++) {
 						PolarNavigator_reToDh (polnav, (ib+0.5)*rscale, elangle, &d, &h);
 						PolarScanParam_getValue (vrad, ib, ir, &val);
-						if ((h>=iz) && (h<iz+DZ) && (d>=DMIN) && (d<=DMAX) && (elangle*RAD2DEG>=EMIN) &&
-							(val!=nodata) && (val!=undetect) && (abs(offset+gain*val)>=VMIN)) {
+						if ((h>=iz) && (h<iz+self->dz) && (d>=self->dmin) && (d<=self->dmax) && (elangle*RAD2DEG>=self->emin) &&
+							(val!=nodata) && (val!=undetect) && (abs(offset+gain*val)>=self->vmin)) {
 							*(v+nv) = offset+gain*val;
 							*(az+nv) = 360./nrays*ir*DEG2RAD;
 							*(A+nv*NOC) = sin(*(az+nv));
@@ -105,7 +219,7 @@ PolarVolume_t* wrwp(PolarVolume_t* inobj) {
 					for (ib=0; ib<nbins; ib++) {
 						PolarNavigator_reToDh (polnav, (ib+0.5)*rscale, elangle, &d, &h);
 						PolarScanParam_getValue (dbz, ib, ir, &val);
-						if ((h>=iz) && (h<iz+DZ) && (d>=DMIN) && (d<=DMAX) && (elangle*RAD2DEG>=EMIN) &&
+						if ((h>=iz) && (h<iz+self->dz) && (d>=self->dmin) && (d<=self->dmax) && (elangle*RAD2DEG>=self->emin) &&
 							(val!=nodata) && (val!=undetect)) {
 							*(z+nz) = dBZ2Z (offset+gain*val);
 							zsum = zsum + *(z+nz);
@@ -165,16 +279,27 @@ PolarVolume_t* wrwp(PolarVolume_t* inobj) {
 		}
 
 		if ((nv<NMIN) || (nz<NMIN))
-			printf("%6d %6d %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f \n", iz+DZ/2, 0, -9999., -9999., -9999., -9999., -9999., -9999.);
+			printf("%6d %6d %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f \n", iz+self->dz/2, 0, -9999., -9999., -9999., -9999., -9999., -9999.);
 		else
-			printf("%6d %6d %8.2f %8.2f %8.2f %8.2f %8.2f %8.2f \n", iz+DZ/2, nv, vvel, vstd, vdir, -9999., zmean, zstd);
+			printf("%6d %6d %8.2f %8.2f %8.2f %8.2f %8.2f %8.2f \n", iz+self->dz/2, nv, vvel, vstd, vdir, -9999., zmean, zstd);
 
 		RAVE_FREE (A);
 		RAVE_FREE (b);
 		RAVE_FREE (v);
 		RAVE_FREE (z);
 		RAVE_FREE (az);
-
 	}
+
+  RAVE_OBJECT_RELEASE(polnav);
 	return result;
 }
+
+/*@} End of Interface functions */
+
+RaveCoreObjectType Wrwp_TYPE = {
+    "Wrwp",
+    sizeof(Wrwp_t),
+    Wrwp_constructor,
+    Wrwp_destructor
+};
+
