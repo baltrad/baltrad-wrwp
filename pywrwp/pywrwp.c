@@ -150,16 +150,28 @@ static PyObject* _pywrwp_new(PyObject* self, PyObject* args)
 static PyObject* _pywrwp_generate(PyWrwp* self, PyObject* args)
 {
 	PyObject* obj = NULL;
-	//PyPolarVolume* pyobj = NULL;
+	PyVerticalProfile* pyvp = NULL;
+	VerticalProfile_t* vp = NULL;
+
 	if(!PyArg_ParseTuple(args, "O",&obj)) {
 		return NULL;
 	}
+
 	if (!PyPolarVolume_Check(obj)) {
 	  raiseException_returnNULL(PyExc_AttributeError, "In argument must be a polar volume");
 	}
-	//pyobj = (PyPolarVolume*)obj;
 
-	return NULL;
+	vp = Wrwp_generate(self->wrwp, ((PyPolarVolume*)obj)->pvol);
+
+	if (vp == NULL) {
+	  raiseException_gotoTag(done, PyExc_RuntimeError, "Failed to generate vertical profile");
+	}
+
+	pyvp = PyVerticalProfile_New(vp);
+
+done:
+  RAVE_OBJECT_RELEASE(vp);
+	return (PyObject*)pyvp;
 }
 
 /**
@@ -168,14 +180,6 @@ static PyObject* _pywrwp_generate(PyWrwp* self, PyObject* args)
 static struct PyMethodDef _pywrwp_methods[] =
 {
   {"generate", (PyCFunction)_pywrwp_generate, 1},
-/*
-  {"method", NULL},
-  {"ppi", (PyCFunction) _pytransform_ppi, 1},
-  {"cappi", (PyCFunction) _pytransform_cappi, 1},
-  {"pcappi", (PyCFunction) _pytransform_pcappi, 1},
-  {"ctoscan", (PyCFunction) _pytransform_ctoscan, 1},
-  {"ctop", (PyCFunction) _pytransform_ctop, 1},
-  {"fillGap", (PyCFunction) _pytransform_fillGap, 1},*/
   {NULL, NULL } /* sentinel */
 };
 
@@ -326,6 +330,7 @@ init_wrwp(void)
 
   import_array();
   import_pypolarvolume();
+  import_pyverticalprofile();
   PYRAVE_DEBUG_INITIALIZE;
 }
 /*@} End of Module setup */

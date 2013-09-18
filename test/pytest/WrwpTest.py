@@ -28,8 +28,11 @@ import unittest
 import string
 import _wrwp
 import _helpers
+import _raveio, _rave
 
 class WrwpTest(unittest.TestCase):
+  FIXTURE = "fixtures/pvol_seang_20090501T120000Z.h5"
+  
   def setUp(self):
     _helpers.triggerMemoryStatus()
 
@@ -103,6 +106,11 @@ class WrwpTest(unittest.TestCase):
     self.assertAlmostEquals(3.5, obj.vmin, 4)
     obj.vmin = 4
     self.assertAlmostEquals(4.0, obj.vmin, 4)
+  
+  def test_generate(self):
+    pvol = _raveio.open(self.FIXTURE).object
+    generator = _wrwp.new()
+    vp = generator.generate(pvol)
     
 if __name__ == "__main__":
   unittest.main()
