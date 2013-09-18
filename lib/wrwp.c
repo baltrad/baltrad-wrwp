@@ -298,12 +298,12 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj) {
       zstd = sqrt(zstd/(nz-1));
       zstd = Z2dBZ(zstd);
     }
-
+/*
     if ((nv < NMIN) || (nz < NMIN))
       printf("%6d %6d %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f \n", iz+self->dz/2, 0, -9999., -9999., -9999., -9999., -9999., -9999.);
     else
       printf("%6d %6d %8.2f %8.2f %8.2f %8.2f %8.2f %8.2f \n", iz+self->dz/2, nv, vvel, vstd, vdir, -9999., zmean, zstd);
-
+*/
     RAVE_FREE(A);
     RAVE_FREE(b);
     RAVE_FREE(v);

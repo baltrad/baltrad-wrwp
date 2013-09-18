@@ -110,6 +110,7 @@ class WrwpTest(unittest.TestCase):
   def test_generate(self):
     pvol = _raveio.open(self.FIXTURE).object
     generator = _wrwp.new()
+    generator.hmax = 2000
     vp = generator.generate(pvol)
     
 if __name__ == "__main__":
