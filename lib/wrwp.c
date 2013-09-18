@@ -49,11 +49,11 @@ PolarVolume_t* wrwp(PolarVolume_t* inobj) {
 		double *z = RAVE_CALLOC ((size_t)(NOR), sizeof (double));
 		double *az = RAVE_CALLOC ((size_t)(NOR), sizeof (double));
 
-		vdir = NAN;
-		vvel = NAN;
+		vdir = -9999.0; /*NAN;*/
+		vvel = -9999.0; /*NAN;*/
 		vstd = 0.0;
 		zsum = 0.0;
-		zmean = NAN;
+		zmean = -9999.0; /*NAN;*/
 		zstd = 0.0;
 		nv = 0;
 		nz = 0;
