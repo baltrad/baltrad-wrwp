@@ -149,13 +149,47 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj) {
 	double rscale, elangle, gain, offset, nodata, undetect, val;
 	double d, h;
 	double alpha, beta, gamma, vvel, vdir, vstd, zsum, zmean, zstd;
+	int ysize = 0, yindex = 0;
+
+	RaveField_t *ff_field = NULL, *ff_dev_field = NULL, *dd_field = NULL;
+	RaveField_t *dbzh_field = NULL, *dbzh_dev_field = NULL, *nz_field = NULL, *nv_field = NULL;
 
 	RAVE_ASSERT((self != NULL), "self == NULL");
 
-	result = RAVE_OBJECT_NEW (&VerticalProfile_TYPE);
+	ff_field = RAVE_OBJECT_NEW(&RaveField_TYPE);
+  ff_dev_field = RAVE_OBJECT_NEW(&RaveField_TYPE);
+  dd_field = RAVE_OBJECT_NEW(&RaveField_TYPE);
+  dbzh_field = RAVE_OBJECT_NEW(&RaveField_TYPE);
+  dbzh_dev_field = RAVE_OBJECT_NEW(&RaveField_TYPE);
+  nz_field = RAVE_OBJECT_NEW(&RaveField_TYPE);
+  nv_field = RAVE_OBJECT_NEW(&RaveField_TYPE);
+
+  if (ff_field == NULL || ff_dev_field == NULL || dd_field == NULL ||
+      dbzh_field == NULL || dbzh_dev_field == NULL || nz_field == NULL || nv_field == NULL) {
+    RAVE_ERROR0("Failed to allocate memory for the resulting vp fields");
+    goto done;
+  }
+  ysize = self->hmax / self->dz;
+  if (!RaveField_createData(ff_field, 1, ysize, RaveDataType_DOUBLE) ||
+      !RaveField_createData(ff_dev_field, 1, ysize, RaveDataType_DOUBLE) ||
+      !RaveField_createData(dd_field, 1, ysize, RaveDataType_DOUBLE) ||
+      !RaveField_createData(dbzh_field, 1, ysize, RaveDataType_DOUBLE) ||
+      !RaveField_createData(dbzh_dev_field, 1, ysize, RaveDataType_DOUBLE) ||
+      !RaveField_createData(nz_field, 1, ysize, RaveDataType_INT) ||
+      !RaveField_createData(nv_field, 1, ysize, RaveDataType_INT)) {
+    RAVE_ERROR0("Failed to allocate arrays for the resulting vp fields");
+    goto done;
+  }
 
 	polnav = RAVE_OBJECT_NEW (&PolarNavigator_TYPE);
+	PolarNavigator_setLat0(polnav, PolarVolume_getLatitude(inobj));
+	PolarNavigator_setLon0(polnav, PolarVolume_getLongitude(inobj));
+	PolarNavigator_setAlt0(polnav, PolarVolume_getHeight(inobj));
+
 	nscans = PolarVolume_getNumberOfScans (inobj);
+
+	// We use yindex for filling in the arrays even though we loop to hmax...
+	yindex = 0;
 
 	// loop over atmospheric layers
   for (iz = 0; iz < self->hmax; iz += self->dz) {
@@ -299,19 +333,70 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj) {
       zstd = Z2dBZ(zstd);
     }
 
-    if ((nv < NMIN) || (nz < NMIN))
+    if ((nv < NMIN) || (nz < NMIN)) {
+      RaveField_setValue(ff_field, 0, yindex, -9999.0);
+      RaveField_setValue(ff_dev_field, 0, yindex, -9999.0);
+      RaveField_setValue(dd_field, 0, yindex, -9999.0);
+      RaveField_setValue(dbzh_field, 0, yindex, -9999.0);
+      RaveField_setValue(dbzh_dev_field, 0, yindex, -9999.0);
+      RaveField_setValue(nz_field, 0, yindex, 0);
+      RaveField_setValue(nv_field, 0, yindex, 0);
+    } else {
+      RaveField_setValue(ff_field, 0, yindex, vvel);
+      RaveField_setValue(ff_dev_field, 0, yindex, vstd);
+      RaveField_setValue(dd_field, 0, yindex, vdir);
+      RaveField_setValue(dbzh_field, 0, yindex, zmean);
+      RaveField_setValue(dbzh_dev_field, 0, yindex, zstd);
+      RaveField_setValue(nz_field, 0, yindex, nz);
+      RaveField_setValue(nv_field, 0, yindex, nv);
+    }
+
+/*    if ((nv < NMIN) || (nz < NMIN))
       printf("%6d %6d %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f \n", iz+self->dz/2, 0, -9999., -9999., -9999., -9999., -9999., -9999.);
     else
-      printf("%6d %6d %8.2f %8.2f %8.2f %8.2f %8.2f %8.2f \n", iz+self->dz/2, nv, vvel, vstd, vdir, -9999., zmean, zstd);
+      printf("%6d %6d %8.2f %8.2f %8.2f %8.2f %8.2f %8.2f \n", iz+self->dz/2, nv, vvel, vstd, vdir, -9999., zmean, zstd);*/
 
     RAVE_FREE(A);
     RAVE_FREE(b);
     RAVE_FREE(v);
     RAVE_FREE(z);
     RAVE_FREE(az);
+
+    yindex++; /* Next interval*/
   }
 
+  result = RAVE_OBJECT_NEW(&VerticalProfile_TYPE);
+  if (result != NULL) {
+    if (!VerticalProfile_setFF(result, ff_field) ||
+        !VerticalProfile_setFFDev(result, ff_dev_field) ||
+        !VerticalProfile_setDD(result, dd_field) ||
+        !VerticalProfile_setDBZ(result, dbzh_field) ||
+        !VerticalProfile_setDBZDev(result, dbzh_dev_field)) {
+      RAVE_ERROR0("Failed to set vertical profile fields");
+      RAVE_OBJECT_RELEASE(result);
+    }
+  }
+  VerticalProfile_setLongitude(result, PolarVolume_getLongitude(inobj));
+  VerticalProfile_setLatitude(result, PolarVolume_getLatitude(inobj));
+  VerticalProfile_setHeight(result, PolarVolume_getHeight(inobj));
+  VerticalProfile_setSource(result, PolarVolume_getSource(inobj));
+  VerticalProfile_setInterval(result, self->dz);
+  VerticalProfile_setLevels(result, ysize);
+  VerticalProfile_setMinheight(result, self->dz / 2);
+  VerticalProfile_setMaxheight(result, self->hmax);
+  VerticalProfile_setDate(result, PolarVolume_getDate(inobj));
+  VerticalProfile_setTime(result, PolarVolume_getTime(inobj));
+
+done:
   RAVE_OBJECT_RELEASE(polnav);
+  RAVE_OBJECT_RELEASE(ff_field);
+  RAVE_OBJECT_RELEASE(ff_dev_field);
+  RAVE_OBJECT_RELEASE(dd_field);
+  RAVE_OBJECT_RELEASE(dbzh_field);
+  RAVE_OBJECT_RELEASE(dbzh_dev_field);
+  RAVE_OBJECT_RELEASE(nz_field);
+  RAVE_OBJECT_RELEASE(nv_field);
+
   return result;
 }
 

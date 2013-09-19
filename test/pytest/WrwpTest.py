@@ -111,7 +111,55 @@ class WrwpTest(unittest.TestCase):
     pvol = _raveio.open(self.FIXTURE).object
     generator = _wrwp.new()
     generator.hmax = 2000
+    generator.dz = 200
+    
     vp = generator.generate(pvol)
+    
+    ff = vp.getFF()
+    ff_dev = vp.getFFDev()
+    dd = vp.getDD()
+    dbz = vp.getDBZ()
+    dbz_dev = vp.getDBZDev()
+    
+    self.assertEquals(1, ff.xsize)
+    self.assertEquals(10, ff.ysize)
+    self.assertEquals("ff", ff.getAttribute("what/quantity"))
+
+    self.assertEquals(1, ff_dev.xsize)
+    self.assertEquals(10, ff_dev.ysize)
+    self.assertEquals("ff_dev", ff_dev.getAttribute("what/quantity"))
+
+    self.assertEquals(1, dd.xsize)
+    self.assertEquals(10, dd.ysize)
+    self.assertEquals("dd", dd.getAttribute("what/quantity"))
+    
+    self.assertEquals(1, dbz.xsize)
+    self.assertEquals(10, dbz.ysize)
+    self.assertEquals("dbz", dbz.getAttribute("what/quantity"))
+
+    self.assertEquals(1, dbz_dev.xsize)
+    self.assertEquals(10, dbz_dev.ysize)
+    self.assertEquals("dbz_dev", dbz_dev.getAttribute("what/quantity"))
+
+    self.assertEquals(10, vp.getLevels())
+    self.assertEquals(200, vp.interval)
+    self.assertEquals(100, vp.minheight)
+    self.assertEquals(2000, vp.maxheight)
+    self.assertEquals(pvol.source, vp.source)
+    self.assertEquals(pvol.date, vp.date)
+    self.assertEquals(pvol.time, vp.time)
+    
+  def X_test_generate_2(self):
+    pvol = _raveio.open(self.FIXTURE).object
+    generator = _wrwp.new()
+    generator.hmax = 2000
+    generator.dz = 200
+    
+    vp = generator.generate(pvol)
+
+    robj = _raveio.new()
+    robj.object = vp
+    robj.save("slask.h5")
     
 if __name__ == "__main__":
   unittest.main()
