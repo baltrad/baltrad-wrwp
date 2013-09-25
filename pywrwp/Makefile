@@ -62,8 +62,9 @@ $(TARGET): $(DEPDIR) $(OBJECTS) ../lib/libwrwp.so
 install:
 	@mkdir -p "${prefix}/share/wrwp/pywrwp"
 	@cp -v -f $(TARGET) "${prefix}/share/wrwp/pywrwp/"
-	@cp -v -f *.py "${prefix}/share/wrwp/pywrwp/"
 	@-echo "$(prefix)/share/wrwp/pywrwp" > "$(SITEPACK_PYTHON)/pywrwp.pth"
+
+#@cp -v -f *.py "${prefix}/share/wrwp/pywrwp/"
 
 .PHONY=clean
 clean:
