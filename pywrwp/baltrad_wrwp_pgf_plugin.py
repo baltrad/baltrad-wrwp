@@ -114,6 +114,8 @@ def generate(files, arguments):
 
   profile = wrwp.generate(obj)
   
+  fileno, outfile = rave_tempfile.mktemp(suffix='.h5', close="True")
+  
   ios = _raveio.new()
   ios.object = profile
   ios.filename = outfile
