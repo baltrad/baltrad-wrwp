@@ -43,7 +43,6 @@ import string
 import rave_tempfile
 import odim_source
 import math
-import logging
 
 from rave_defines import CENTER_ID, GAIN, OFFSET
 
