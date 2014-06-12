@@ -44,11 +44,8 @@ import rave_tempfile
 import odim_source
 import math
 import logging
-import rave_pgf_logger
 
-from rave_defines import CENTER_ID, GAIN, OFFSET, LOG_ID
-
-logger = logging.getLogger(LOG_ID)
+from rave_defines import CENTER_ID, GAIN, OFFSET
 
 ravebdb = None
 try:
