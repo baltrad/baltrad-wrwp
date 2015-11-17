@@ -225,9 +225,5 @@ class WrwpTest(unittest.TestCase):
     self.assertEquals(4000, vp.getAttribute("how/minrange"))
     self.assertEquals(40000, vp.getAttribute("how/maxrange"))
     
-    robj = _raveio.new()
-    robj.object = vp
-    robj.save("slask.h5")
-    
 if __name__ == "__main__":
   unittest.main()
