@@ -32,6 +32,7 @@ import _raveio, _rave
 
 class WrwpTest(unittest.TestCase):
   FIXTURE = "fixtures/pvol_seang_20090501T120000Z.h5"
+  FIXTURE2 = "fixtures/selul_pvol_20151114T1615Z.h5"
   
   def setUp(self):
     _helpers.triggerMemoryStatus()
@@ -157,6 +158,73 @@ class WrwpTest(unittest.TestCase):
     
     vp = generator.generate(pvol)
 
+    robj = _raveio.new()
+    robj.object = vp
+    robj.save("slask.h5")
+
+  def test_generate_with_several_howattributes(self):
+    pvol = _raveio.open(self.FIXTURE2).object
+    generator = _wrwp.new()
+    generator.hmax = 2000
+    generator.dz = 200
+    
+    vp = generator.generate(pvol)
+    
+    ff = vp.getFF()
+    ff_dev = vp.getFFDev()
+    dd = vp.getDD()
+    dbz = vp.getDBZ()
+    dbz_dev = vp.getDBZDev()
+    
+    self.assertEquals(1, ff.xsize)
+    self.assertEquals(10, ff.ysize)
+    self.assertEquals("ff", ff.getAttribute("what/quantity"))
+
+    self.assertEquals(1, ff_dev.xsize)
+    self.assertEquals(10, ff_dev.ysize)
+    self.assertEquals("ff_dev", ff_dev.getAttribute("what/quantity"))
+
+    self.assertEquals(1, dd.xsize)
+    self.assertEquals(10, dd.ysize)
+    self.assertEquals("dd", dd.getAttribute("what/quantity"))
+    
+    self.assertEquals(1, dbz.xsize)
+    self.assertEquals(10, dbz.ysize)
+    self.assertEquals("dbz", dbz.getAttribute("what/quantity"))
+
+    self.assertEquals(1, dbz_dev.xsize)
+    self.assertEquals(10, dbz_dev.ysize)
+    self.assertEquals("dbz_dev", dbz_dev.getAttribute("what/quantity"))
+
+    self.assertEquals(10, vp.getLevels())
+    self.assertEquals(200, vp.interval)
+    self.assertEquals(100, vp.minheight)
+    self.assertEquals(2000, vp.maxheight)
+    self.assertEquals(pvol.source, vp.source)
+    self.assertEquals(pvol.date, vp.date)
+    self.assertEquals(pvol.time, vp.time)
+    
+    self.assertEquals(900, vp.getAttribute("how/lowprf"))
+    self.assertEquals(1200, vp.getAttribute("how/highprf"))
+    self.assertAlmostEqual(0.61, vp.getAttribute("how/pulsewidth"), 4)
+    self.assertAlmostEqual(5.35, vp.getAttribute("how/wavelength"), 4)
+    self.assertAlmostEqual(0.8, vp.getAttribute("how/RXbandwidth"), 4)
+    self.assertAlmostEqual(3.1, vp.getAttribute("how/RXloss"), 4)
+    self.assertAlmostEqual(1.9, vp.getAttribute("how/TXloss"), 4)
+    self.assertAlmostEqual(44.9, vp.getAttribute("how/antgain"), 4)
+    self.assertEquals("AVERAGE", vp.getAttribute("how/azmethod"))
+    self.assertEquals("AVERAGE", vp.getAttribute("how/binmethod"))
+    self.assertEquals("False", vp.getAttribute("how/malfunc"))
+    self.assertAlmostEqual(277.4, vp.getAttribute("how/nomTXpower"), 4)
+    self.assertEquals("b94 3dd 000 000 000:", vp.getAttribute("how/radar_msg"), 4)
+    self.assertAlmostEqual(73.101, vp.getAttribute("how/radconstH"), 4)
+    self.assertAlmostEqual(0.2, vp.getAttribute("how/radomeloss"), 4)
+    self.assertAlmostEqual(2.0, vp.getAttribute("how/rpm"), 4)
+    self.assertEquals("PARTEC2", vp.getAttribute("how/software"))
+    self.assertEquals("ERIC", vp.getAttribute("how/system"))
+    self.assertEquals(4000, vp.getAttribute("how/minrange"))
+    self.assertEquals(40000, vp.getAttribute("how/maxrange"))
+    
     robj = _raveio.new()
     robj.object = vp
     robj.save("slask.h5")

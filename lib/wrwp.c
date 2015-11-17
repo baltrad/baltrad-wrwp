@@ -63,6 +63,35 @@ static void Wrwp_destructor(RaveCoreObject* obj)
 {
 }
 
+static int WrwpInternal_findAndAddAttribute(VerticalProfile_t* vp, PolarVolume_t* pvol, const char* name)
+{
+  int nscans = PolarVolume_getNumberOfScans(pvol);
+  int i = 0;
+  int found = 0;
+  for (i = 0; i < nscans && found == 0; i++) {
+    PolarScan_t* scan = PolarVolume_getScan(pvol, i);
+    if (scan != NULL && PolarScan_hasAttribute(scan, name)) {
+      RaveAttribute_t* attr = PolarScan_getAttribute(scan, name);
+      VerticalProfile_addAttribute(vp, attr);
+      found = 1;
+      RAVE_OBJECT_RELEASE(attr);
+    }
+    RAVE_OBJECT_RELEASE(scan);
+  }
+  return found;
+}
+
+static int WrwpInternal_addIntAttribute(VerticalProfile_t* vp, const char* name, int value)
+{
+  RaveAttribute_t* attr = RaveAttributeHelp_createLong(name, value);
+  int result = 0;
+  if (attr != NULL) {
+    result = VerticalProfile_addAttribute(vp, attr);
+  }
+  RAVE_OBJECT_RELEASE(attr);
+  return result;
+}
+
 /*@} End of Private functions */
 
 /*@{ Interface functions */
@@ -386,6 +415,29 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj) {
   VerticalProfile_setMaxheight(result, self->hmax);
   VerticalProfile_setDate(result, PolarVolume_getDate(inobj));
   VerticalProfile_setTime(result, PolarVolume_getTime(inobj));
+
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/highprf");
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/lowprf");
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/pulsewidth");
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/wavelength");
+
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/RXbandwidth");
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/RXloss");
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/TXloss");
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/antgain");
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/azmethod");
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/binmethod");
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/malfunc");
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/nomTXpower");
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/radar_msg");
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/radconstH");
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/radomeloss");
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/rpm");
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/software");
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/system");
+
+  WrwpInternal_addIntAttribute(result, "how/minrange", Wrwp_getDMIN(self));
+  WrwpInternal_addIntAttribute(result, "how/maxrange", Wrwp_getDMAX(self));
 
 done:
   RAVE_OBJECT_RELEASE(polnav);
