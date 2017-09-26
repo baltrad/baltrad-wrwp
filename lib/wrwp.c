@@ -247,8 +247,8 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj) {
       elangle = PolarScan_getElangle(scan);
 
       // radial wind scans
-      if (PolarScan_hasParameter(scan, "VRAD")) {
-        vrad = PolarScan_getParameter(scan, "VRAD");
+      if (PolarScan_hasParameter(scan, "VRADH")) {
+        vrad = PolarScan_getParameter(scan, "VRADH");
         gain = PolarScanParam_getGain(vrad);
         offset = PolarScanParam_getOffset(vrad);
         nodata = PolarScanParam_getNodata(vrad);
@@ -422,16 +422,16 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj) {
   WrwpInternal_findAndAddAttribute(result, inobj, "how/wavelength");
 
   WrwpInternal_findAndAddAttribute(result, inobj, "how/RXbandwidth");
-  WrwpInternal_findAndAddAttribute(result, inobj, "how/RXloss");
-  WrwpInternal_findAndAddAttribute(result, inobj, "how/TXloss");
-  WrwpInternal_findAndAddAttribute(result, inobj, "how/antgain");
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/RXlossH");
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/TXlossH");
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/antgainH");
   WrwpInternal_findAndAddAttribute(result, inobj, "how/azmethod");
   WrwpInternal_findAndAddAttribute(result, inobj, "how/binmethod");
   WrwpInternal_findAndAddAttribute(result, inobj, "how/malfunc");
   WrwpInternal_findAndAddAttribute(result, inobj, "how/nomTXpower");
   WrwpInternal_findAndAddAttribute(result, inobj, "how/radar_msg");
   WrwpInternal_findAndAddAttribute(result, inobj, "how/radconstH");
-  WrwpInternal_findAndAddAttribute(result, inobj, "how/radomeloss");
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/radomelossH");
   WrwpInternal_findAndAddAttribute(result, inobj, "how/rpm");
   WrwpInternal_findAndAddAttribute(result, inobj, "how/software");
   WrwpInternal_findAndAddAttribute(result, inobj, "how/system");
