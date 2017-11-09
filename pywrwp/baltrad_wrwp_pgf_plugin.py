@@ -68,11 +68,15 @@ def arglist2dict(arglist):
 # @return the translated value
 # @throws ValueError if value not could be translated
 #
+    
 def strToNumber(sval):
-  try:
-    return int(sval)
-  except ValueError, e:
-    return float(sval)
+  if type(sval) is not str: # Don't do anything if it is not a string as input
+    return sval
+  else:
+    try:
+      return int(sval)
+    except ValueError, e:
+      return float(sval)
 
 ## Creates a composite
 #@param files the list of files to be used for generating the composite
@@ -87,7 +91,7 @@ def generate(files, arguments):
   if "maxheight" in args.keys():
     wrwp.hmax = strToNumber(args["maxheight"])
   if "mindistance" in args.keys():
-    wrwp.dmin = args["mindistance"]
+    wrwp.dmin = strToNumber(args["mindistance"])
   if "maxdistance" in args.keys():
     wrwp.dmax = strToNumber(args["maxdistance"]) 
   if "minelevationangle" in args.keys():

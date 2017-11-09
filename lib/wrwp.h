@@ -19,6 +19,10 @@ along with HLHDF.  If not, see <http://www.gnu.org/licenses/>.
  * @file
  * @author Gunther Haase, SMHI
  * @date 2013-02-06
+ *
+ * @author Ulf E. Nordh, SMHI
+ * @date 2017-02-23, started overhaul of the code to achieve better
+ * resemblance with N2 and requirements from customer E-profile
  */
 #ifndef WRWP_H
 #define WRWP_H
@@ -31,6 +35,7 @@ along with HLHDF.  If not, see <http://www.gnu.org/licenses/>.
 #include <cblas.h>
 
 #include "rave_io.h"
+#include "rave_attribute.h"
 #include "cartesian.h"
 #include "polarvolume.h"
 #include "vertical_profile.h"
@@ -49,20 +54,24 @@ along with HLHDF.  If not, see <http://www.gnu.org/licenses/>.
 /*Definition of standard parameters.                                          */
 /******************************************************************************/
 
-#define DEG2RAD    DEG_TO_RAD      /* Degrees to radians. From PROJ.4 */
-#define RAD2DEG    RAD_TO_DEG      /* Radians to degrees. From PROJ.4 */
-#define NOR        20000           /* Number of rows in matrix A used in the computation */
-#define NOC        3               /* Number of columns in matrix A used in the computation */
-#define NRHS       1               /* Number of right-hand sides; that is, the number of columns in matrix B used in the computation */
-#define LDA        NOC             /* Leading dimension of the array specified for a */
-#define LDB        NRHS            /* Leading dimension of the array specified for b */
-#define DMIN       4000            /* Minimum distance for deriving a profile [m] */
-#define DMAX       40000           /* Maximum distance for deriving a profile [m] */
-#define NMIN       36              /* Minimum sample size */
-#define EMIN       2.5             /* Minimum elevation angle [deg] */
-#define VMIN       2.0             /* Radial velocity threshold [m/s] */
-#define DZ         200             /* Height interval for deriving a profile [m] */
-#define HMAX       12000           /* Maximum height of the profile [m] */
+#define DEG2RAD     DEG_TO_RAD      /* Degrees to radians. From PROJ.4 */
+#define RAD2DEG     RAD_TO_DEG      /* Radians to degrees. From PROJ.4 */
+#define NOR         20000           /* Number of rows in matrix A used in the computation */
+#define NOC         3               /* Number of columns in matrix A used in the computation */
+#define NRHS        1               /* Number of right-hand sides; that is, the number of columns in matrix B used in the computation */
+#define LDA         NOC             /* Leading dimension of the array specified for a */
+#define LDB         NRHS            /* Leading dimension of the array specified for b */
+#define DMIN        4000            /* Minimum distance for deriving a profile [m] */
+#define DMAX        40000           /* Maximum distance for deriving a profile [m] */
+#define NMIN        36              /* Minimum sample size */
+#define EMIN        2.5             /* Minimum elevation angle [deg] */
+#define VMIN        2.0             /* Radial velocity threshold [m/s] */
+#define DZ          200             /* Height interval for deriving a profile [m] */
+#define HMAX        12000           /* Maximum height of the profile [m] */
+#define NODATA_VP   -9999           /* Nodata value used in the vertical profile */
+#define UNDETECT_VP -9999           /* Undetect value used in the vertical profile */         
+#define GAIN_VP     1.0             /* Gain value for the fields UWND and VWND */
+#define OFFSET_VP   0.0             /* Offset value for the fields UWND and VWND */
 
 /**
  * Defines a weather radar wind product generator
@@ -80,6 +89,62 @@ extern RaveCoreObjectType Wrwp_TYPE;
  * @param[in] dz - the height interval
  */
 void Wrwp_setDZ(Wrwp_t* self, int dz);
+
+/**
+ * Returns the nodata value used for vertical profiles
+ * @param[in] self - self
+ * @return the nodata value
+ */
+int Wrwp_getNODATA_VP(Wrwp_t* self);
+
+/**
+ * Sets the nodata value for the profile
+ * @param[in] self - self
+ * @param[in] nodata_VP - the nodata value
+ */
+void Wrwp_setNODATA_VP(Wrwp_t* self, int nodata_vp);
+
+/**
+ * Returns the undetect value used for vertical profiles
+ * @param[in] self - self
+ * @return the undetect value
+ */
+int Wrwp_getUNDETECT_VP(Wrwp_t* self);
+
+/**
+ * Sets the undetect value for the profile
+ * @param[in] self - self
+ * @param[in] undetect_VP - the nodata value
+ */
+void Wrwp_setUNDETECT_VP(Wrwp_t* self, int nodata_vp);
+
+/**
+ * Returns the gain value used for vertical profiles
+ * @param[in] self - self
+ * @return the gain value
+ */
+int Wrwp_getGAIN_VP(Wrwp_t* self);
+
+/**
+ * Sets the gain value for the vertical profile
+ * @param[in] self - self
+ * @param[in] gain_VP - the gain value
+ */
+void Wrwp_setGAIN_VP(Wrwp_t* self, int nodata_vp);
+
+/**
+ * Returns the offset value used for vertical profiles
+ * @param[in] self - self
+ * @return the offset value
+ */
+int Wrwp_getOFFSET_VP(Wrwp_t* self);
+
+/**
+ * Sets the offset value for the profile
+ * @param[in] self - self
+ * @param[in] offset_VP - the offset value
+ */
+void Wrwp_setOFFSET_VP(Wrwp_t* self, int nodata_vp);
 
 /**
  * Returns the height interval for deriving a profile [m]

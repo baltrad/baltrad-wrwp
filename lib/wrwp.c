@@ -20,13 +20,21 @@ along with HLHDF.  If not, see <http://www.gnu.org/licenses/>.
  * @file
  * @author Gunther Haase, SMHI
  * @date 2013-02-06
+ *
+ * @author Ulf E. Nordh, SMHI
+ * @date 2017-02-23, started overhaul of the code to achieve better
+ * resemblance with N2 and requirements from customer E-profile
+ * 
  */
 
 #include "wrwp.h"
+#include "vertical_profile.h"
 #include "rave_debug.h"
 #include "rave_alloc.h"
 #include <string.h>
-
+#include <stdio.h>
+#include <stdlib.h>
+#include "rave_attribute.h"
 /**
  * Represents one wrwp generator
  */
@@ -38,6 +46,10 @@ struct _Wrwp_t {
   int dmax; /**< Maximum distance for deriving a profile [m]*/
   double emin; /**< Minimum elevation angle [deg] */
   double vmin; /**< Radial velocity threshold [m/s] */
+  double nodata_VP; /**< Nodata value for vertical profile */
+  double gain_VP; /**< Gain for VP fields */
+  double offset_VP; /**< Offset for VP fields */
+  double undetect_VP; /**<Undetect for VP fields */
 };
 
 /*@{ Private functions */
@@ -53,6 +65,10 @@ static int Wrwp_constructor(RaveCoreObject* obj)
   wrwp->dmax = DMAX;
   wrwp->emin = EMIN;
   wrwp->vmin = VMIN;
+  wrwp->nodata_VP = NODATA_VP;
+  wrwp->gain_VP = GAIN_VP;
+  wrwp->offset_VP = OFFSET_VP;
+  wrwp->undetect_VP = UNDETECT_VP;
   return 1;
 }
 
@@ -63,18 +79,26 @@ static void Wrwp_destructor(RaveCoreObject* obj)
 {
 }
 
-static int WrwpInternal_findAndAddAttribute(VerticalProfile_t* vp, PolarVolume_t* pvol, const char* name)
+static int WrwpInternal_findAndAddAttribute(VerticalProfile_t* vp, PolarVolume_t* pvol, const char* name, double minSelAng)
 {
   int nscans = PolarVolume_getNumberOfScans(pvol);
   int i = 0;
   int found = 0;
+  double elangle = 0.0;
+  
   for (i = 0; i < nscans && found == 0; i++) {
     PolarScan_t* scan = PolarVolume_getScan(pvol, i);
     if (scan != NULL && PolarScan_hasAttribute(scan, name)) {
-      RaveAttribute_t* attr = PolarScan_getAttribute(scan, name);
-      VerticalProfile_addAttribute(vp, attr);
-      found = 1;
-      RAVE_OBJECT_RELEASE(attr);
+        elangle = PolarScan_getElangle(scan);
+        
+        /* Filter with respect to the selected min elangle
+           that is given in the web GUI route for WRWP generation */
+        if ((elangle * RAD2DEG) >= minSelAng) {
+          RaveAttribute_t* attr = PolarScan_getAttribute(scan, name);
+          VerticalProfile_addAttribute(vp, attr);
+          found = 1;
+          RAVE_OBJECT_RELEASE(attr);
+        }
     }
     RAVE_OBJECT_RELEASE(scan);
   }
@@ -92,6 +116,22 @@ static int WrwpInternal_addIntAttribute(VerticalProfile_t* vp, const char* name,
   return result;
 }
 
+/* Function that adds various quantities under a field's what in order to
+   better resemble the function existing in vertical profiles from N2 */
+static int WrwpInternal_addDoubleAttr2Field(RaveField_t* field, const char* name, double quantity)
+{
+  int result = 0;
+  RaveAttribute_t* attr = RaveAttributeHelp_createDouble(name, quantity);
+  result = RaveField_addAttribute(field, attr);
+  if (attr == NULL || !result) {
+    RAVE_ERROR0("Failed to add what/quantity attribute to field");
+    goto done;
+  }
+  RAVE_OBJECT_RELEASE(attr);
+done:
+  return result;
+}
+
 /*@} End of Private functions */
 
 /*@{ Interface functions */
@@ -105,6 +145,54 @@ int Wrwp_getDZ(Wrwp_t* self)
 {
   RAVE_ASSERT((self != NULL), "self == NULL");
   return self->dz;
+}
+
+void Wrwp_setNODATA_VP(Wrwp_t* self, int nodata_VP)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  self->nodata_VP = nodata_VP;
+}
+
+int Wrwp_getNODATA_VP(Wrwp_t* self)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  return self->nodata_VP;
+}
+
+void Wrwp_setUNDETECT_VP(Wrwp_t* self, int undetect_VP)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  self->undetect_VP = undetect_VP;
+}
+
+int Wrwp_getUNDETECT_VP(Wrwp_t* self)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  return self->undetect_VP;
+}
+
+void Wrwp_setGAIN_VP(Wrwp_t* self, int gain_VP)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  self->gain_VP = gain_VP;
+}
+
+int Wrwp_getGAIN_VP(Wrwp_t* self)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  return self->gain_VP;
+}
+
+void Wrwp_setOFFSET_VP(Wrwp_t* self, int offset_VP)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  self->offset_VP = offset_VP;
+}
+
+int Wrwp_getOFFSET_VP(Wrwp_t* self)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  return self->offset_VP;
 }
 
 void Wrwp_setHMAX(Wrwp_t* self, int hmax)
@@ -169,43 +257,104 @@ double Wrwp_getVMIN(Wrwp_t* self)
 
 VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj) {
   VerticalProfile_t* result = NULL;
-	PolarScan_t* scan = NULL;
-	PolarScanParam_t* vrad = NULL;
-	PolarScanParam_t* dbz = NULL;
-	PolarNavigator_t* polnav = NULL;
-	int nrhs = NRHS, lda = LDA, ldb = LDB;
-	int nscans = 0, nbins = 0, nrays, nv, nz, i, iz, is, ib, ir;
-	double rscale, elangle, gain, offset, nodata, undetect, val;
-	double d, h;
-	double alpha, beta, gamma, vvel, vdir, vstd, zsum, zmean, zstd;
-	int ysize = 0, yindex = 0;
+  PolarScan_t* scan = NULL;
+  PolarScanParam_t* vrad = NULL;
+  PolarScanParam_t* dbz = NULL;
+  PolarNavigator_t* polnav = NULL;
+  int nrhs = NRHS, lda = LDA, ldb = LDB;
+  int nscans = 0, nbins = 0, nrays, nv, nz, i, iz, is, ib, ir;
+  int findEarliestTime;
+  int findLatestTime;
+  int firstInit;
 
-	RaveField_t *ff_field = NULL, *ff_dev_field = NULL, *dd_field = NULL;
-	RaveField_t *dbzh_field = NULL, *dbzh_dev_field = NULL, *nz_field = NULL, *nv_field = NULL;
+  double rscale, elangle, gain, offset, nodata, undetect, val;
+  double d, h, elangleForThisScan;
+  double alpha, beta, gamma, vvel, vdir, vstd, zsum, zmean, zstd;
+  double centerOfLayer, u_wnd_comp, v_wnd_comp, vdir_rad;
+  int ysize = 0, yindex = 0;
+  
+  const char* starttime = "";
+  const char* endtime = "";
+  const char* startdate = "";
+  const char* enddate = "";
+  const char* product = "VP";
+  
+  const char* startTimeOfThisScan = "";
+  const char* endTimeOfThisScan = "";
+  const char* startDateOfThisScan = "";
+  const char* endDateOfThisScan = "";
+    
+  const char* starttimeFirst = "";
+  const char* endtimeFirst = "";
+  const char* startdateFirst = "";
+  const char* enddateFirst = "";
+      
+  const char* starttimeNext = "";
+  const char* endtimeNext = "";
+  const char* startdateNext = "";
+  const char* enddateNext = "";
+  
+  char* startDateTimeStrFirst = "";
+  char* endDateTimeStrFirst = "";
+  
+  char* startDateTimeStrNext = "";
+  char* endDateTimeStrNext = "";
+   
+  char starttimeArrFirst[10];
+  char endtimeArrFirst[10]; 
+  char startdateArrFirst[10];
+  char enddateArrFirst[10];  
+ 
+  char starttimeArrNext[10];
+  char endtimeArrNext[10];
+  char startdateArrNext[10];
+  char enddateArrNext[10];
 
-	RAVE_ASSERT((self != NULL), "self == NULL");
+  char* malfuncString = "";
+   
+  /* The four field below are the ones fulfilling the requirements from the user E-profiles */
+  RaveField_t *nv_field = NULL, *HGHT_field = NULL;
+  RaveField_t *UWND_field = NULL, *VWND_field = NULL;
+  
+  /* The following fields are removed from the VP but kept in the code
+     for convenience reasons, add to initialization when needed:     
+     *RaveField_t *ff_field = NULL, *ff_dev_field = NULL, *dd_field = NULL;
+      RaveField_t *dbzh_field = NULL, *dbzh_dev_field = NULL, *nz_field = NULL; */
 
-	ff_field = RAVE_OBJECT_NEW(&RaveField_TYPE);
+  RAVE_ASSERT((self != NULL), "self == NULL");
+
+  nv_field = RAVE_OBJECT_NEW(&RaveField_TYPE);
+  HGHT_field = RAVE_OBJECT_NEW(&RaveField_TYPE);
+  UWND_field = RAVE_OBJECT_NEW(&RaveField_TYPE);
+  VWND_field = RAVE_OBJECT_NEW(&RaveField_TYPE);
+    
+  /* Field defs kept in the code for convenience reasons, add when needed:
+  ff_field = RAVE_OBJECT_NEW(&RaveField_TYPE);
   ff_dev_field = RAVE_OBJECT_NEW(&RaveField_TYPE);
   dd_field = RAVE_OBJECT_NEW(&RaveField_TYPE);
   dbzh_field = RAVE_OBJECT_NEW(&RaveField_TYPE);
   dbzh_dev_field = RAVE_OBJECT_NEW(&RaveField_TYPE);
-  nz_field = RAVE_OBJECT_NEW(&RaveField_TYPE);
-  nv_field = RAVE_OBJECT_NEW(&RaveField_TYPE);
+  nz_field = RAVE_OBJECT_NEW(&RaveField_TYPE); */
 
-  if (ff_field == NULL || ff_dev_field == NULL || dd_field == NULL ||
-      dbzh_field == NULL || dbzh_dev_field == NULL || nz_field == NULL || nv_field == NULL) {
+  if (nv_field == NULL || HGHT_field == NULL || UWND_field == NULL ||
+      VWND_field == NULL) {
+    /* Removed, add when needed:ff_field == NULL || ff_dev_field == NULL || 
+       dd_field == NULL || dbzh_field == NULL || dbzh_dev_field == NULL || 
+       nz_field == NULL || */
     RAVE_ERROR0("Failed to allocate memory for the resulting vp fields");
     goto done;
   }
   ysize = self->hmax / self->dz;
-  if (!RaveField_createData(ff_field, 1, ysize, RaveDataType_DOUBLE) ||
+  if (!RaveField_createData(nv_field, 1, ysize, RaveDataType_INT) || 
+      !RaveField_createData(HGHT_field, 1, ysize, RaveDataType_DOUBLE) ||
+      !RaveField_createData(UWND_field, 1, ysize, RaveDataType_DOUBLE) ||
+      !RaveField_createData(VWND_field, 1, ysize, RaveDataType_DOUBLE)) {
+      /* Add when needed: !RaveField_createData(ff_field, 1, ysize, RaveDataType_DOUBLE) ||
       !RaveField_createData(ff_dev_field, 1, ysize, RaveDataType_DOUBLE) ||
       !RaveField_createData(dd_field, 1, ysize, RaveDataType_DOUBLE) ||
       !RaveField_createData(dbzh_field, 1, ysize, RaveDataType_DOUBLE) ||
       !RaveField_createData(dbzh_dev_field, 1, ysize, RaveDataType_DOUBLE) ||
-      !RaveField_createData(nz_field, 1, ysize, RaveDataType_INT) ||
-      !RaveField_createData(nv_field, 1, ysize, RaveDataType_INT)) {
+      !RaveField_createData(nz_field, 1, ysize, RaveDataType_INT) || */
     RAVE_ERROR0("Failed to allocate arrays for the resulting vp fields");
     goto done;
   }
@@ -214,11 +363,13 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj) {
 	PolarNavigator_setLat0(polnav, PolarVolume_getLatitude(inobj));
 	PolarNavigator_setLon0(polnav, PolarVolume_getLongitude(inobj));
 	PolarNavigator_setAlt0(polnav, PolarVolume_getHeight(inobj));
-
+	    
 	nscans = PolarVolume_getNumberOfScans (inobj);
+    
 
 	// We use yindex for filling in the arrays even though we loop to hmax...
 	yindex = 0;
+
 
 	// loop over atmospheric layers
   for (iz = 0; iz < self->hmax; iz += self->dz) {
@@ -237,77 +388,145 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj) {
     zstd = 0.0;
     nv = 0;
     nz = 0;
-
+    
+    /* Define the center height of each verical layer, this will later
+       become the HGHT array */
+    centerOfLayer = iz + (self->dz / 2.0);
+    firstInit = 0;
+    
     // loop over scans
-    for (is = 0; is < nscans; is++) {
+    for (is = 0; is < nscans; is++) {      
       scan = PolarVolume_getScan(inobj, is);
       nbins = PolarScan_getNbins(scan);
       nrays = PolarScan_getNrays(scan);
       rscale = PolarScan_getRscale(scan);
-      elangle = PolarScan_getElangle(scan);
+      elangleForThisScan = PolarScan_getElangle(scan);
+      elangle = elangleForThisScan;
+      startTimeOfThisScan = PolarScan_getStartTime(scan);
+      endTimeOfThisScan = PolarScan_getEndTime(scan);
+      startDateOfThisScan = PolarScan_getStartDate(scan);
+      endDateOfThisScan = PolarScan_getEndDate(scan);
+      RaveAttribute_t* attr = PolarScan_getAttribute(scan, "how/malfunc");
+      RaveAttribute_getString(attr, &malfuncString);
 
-      // radial wind scans
-      if (PolarScan_hasParameter(scan, "VRADH")) {
-        vrad = PolarScan_getParameter(scan, "VRADH");
-        gain = PolarScanParam_getGain(vrad);
-        offset = PolarScanParam_getOffset(vrad);
-        nodata = PolarScanParam_getNodata(vrad);
-        undetect = PolarScanParam_getUndetect(vrad);
+      if (strcmp(malfuncString, "False") == 0) {
+                  
+        if (elangleForThisScan * RAD2DEG >= self->emin && firstInit == 0) {
+          /* Initialize using the first scan and define 2 strings for the combined datetime */
+          starttimeFirst = startTimeOfThisScan;
+          endtimeFirst = endTimeOfThisScan;
+          startdateFirst = startDateOfThisScan;
+          enddateFirst = endDateOfThisScan;
+          firstInit = 1;
+        }
+        
+        if (elangleForThisScan * RAD2DEG >= self->emin && firstInit == 1 && is > 0) {
+          starttimeNext = startTimeOfThisScan;
+          endtimeNext = endTimeOfThisScan;
+          startdateNext = startDateOfThisScan;
+          enddateNext = endDateOfThisScan;
 
-        for (ir = 0; ir < nrays; ir++) {
-          for (ib = 0; ib < nbins; ib++) {
-            PolarNavigator_reToDh(polnav, (ib+0.5)*rscale, elangle, &d, &h);
-            PolarScanParam_getValue(vrad, ib, ir, &val);
+          strcpy(starttimeArrFirst, starttimeFirst);
+          strcpy(endtimeArrFirst, endtimeFirst);
+          strcpy(startdateArrFirst, startdateFirst);
+          strcpy(enddateArrFirst, enddateFirst);
 
-            if ((h >= iz) &&
-                (h < iz + self->dz) &&
-                (d >= self->dmin) &&
-                (d <= self->dmax) &&
-                (elangle * RAD2DEG >= self->emin) &&
-                (val != nodata) &&
-                (val != undetect) &&
-                (abs(offset + gain * val) >= self->vmin)) {
-              *(v+nv) = offset+gain*val;
-              *(az+nv) = 360./nrays*ir*DEG2RAD;
-              *(A+nv*NOC) = sin(*(az+nv));
-              *(A+nv*NOC+1) = cos(*(az+nv));
-              *(A+nv*NOC+2) = 1;
-              *(b+nv) = *(v+nv);
-              nv = nv+1;
+          startDateTimeStrFirst = strcat(startdateArrFirst, starttimeArrFirst);
+          endDateTimeStrFirst = strcat(enddateArrFirst, endtimeArrFirst);
+
+          strcpy(starttimeArrNext, starttimeNext);
+          strcpy(endtimeArrNext, endtimeNext);
+          strcpy(startdateArrNext, startdateNext);
+          strcpy(enddateArrNext, enddateNext);
+
+          startDateTimeStrNext = strcat(startdateArrNext, starttimeArrNext);
+          endDateTimeStrNext = strcat(enddateArrNext, endtimeArrNext);
+
+          /* Find the earliest and latest datetime's and replace the initial ones
+             if they represent an earlier starttime/startdate and a later endtime/enddate */
+          findEarliestTime = strcmp(startDateTimeStrFirst, startDateTimeStrNext);
+          findLatestTime = strcmp(endDateTimeStrFirst, endDateTimeStrNext);
+
+          /* The starttime and startdate */
+          if (findEarliestTime > 0) {
+            starttimeFirst = starttimeNext;
+            startdateFirst = startdateNext;
+          }
+
+          /* The endtime and enddate */
+          if (findLatestTime < 0) {
+            endtimeFirst = endtimeNext;
+            enddateFirst = enddateNext;
+          }             
+        }
+                     
+        // radial wind scans
+        if (PolarScan_hasParameter(scan, "VRAD") || PolarScan_hasParameter(scan, "VRADH")) {
+          if (PolarScan_hasParameter(scan, "VRAD")) {
+            vrad = PolarScan_getParameter(scan, "VRAD");
+          } else {
+            vrad = PolarScan_getParameter(scan, "VRADH");
+          } 
+          gain = PolarScanParam_getGain(vrad);
+          offset = PolarScanParam_getOffset(vrad);
+          nodata = PolarScanParam_getNodata(vrad);
+          undetect = PolarScanParam_getUndetect(vrad);
+
+          for (ir = 0; ir < nrays; ir++) {
+            for (ib = 0; ib < nbins; ib++) {
+              PolarNavigator_reToDh(polnav, (ib+0.5)*rscale, elangle, &d, &h);
+              PolarScanParam_getValue(vrad, ib, ir, &val);
+
+              if ((h >= iz) &&
+                  (h < iz + self->dz) &&
+                  (d >= self->dmin) &&
+                  (d <= self->dmax) &&
+                  (elangle * RAD2DEG >= self->emin) &&
+                  (val != nodata) &&
+                  (val != undetect) &&
+                  (abs(offset + gain * val) >= self->vmin)) {
+                *(v+nv) = offset+gain*val;
+                *(az+nv) = 360./nrays*ir*DEG2RAD;
+                *(A+nv*NOC) = sin(*(az+nv));
+                *(A+nv*NOC+1) = cos(*(az+nv));
+                *(A+nv*NOC+2) = 1;
+                *(b+nv) = *(v+nv);
+                nv = nv+1;
+              }
             }
           }
+          RAVE_OBJECT_RELEASE(vrad);
         }
-        RAVE_OBJECT_RELEASE(vrad);
-      }
 
-      // reflectivity scans
-      if (PolarScan_hasParameter(scan, "DBZH")) {
-        dbz = PolarScan_getParameter(scan, "DBZH");
-        gain = PolarScanParam_getGain(dbz);
-        offset = PolarScanParam_getOffset(dbz);
-        nodata = PolarScanParam_getNodata(dbz);
-        undetect = PolarScanParam_getUndetect(dbz);
+        // reflectivity scans
+        if (PolarScan_hasParameter(scan, "DBZH")) {
+          dbz = PolarScan_getParameter(scan, "DBZH");
+          gain = PolarScanParam_getGain(dbz);
+          offset = PolarScanParam_getOffset(dbz);
+          nodata = PolarScanParam_getNodata(dbz);
+          undetect = PolarScanParam_getUndetect(dbz);
 
-        for (ir = 0; ir < nrays; ir++) {
-          for (ib = 0; ib < nbins; ib++) {
-            PolarNavigator_reToDh (polnav, (ib+0.5)*rscale, elangle, &d, &h);
-            PolarScanParam_getValue (dbz, ib, ir, &val);
-            if ((h >= iz) &&
-                (h < iz+self->dz) &&
-                (d >= self->dmin) &&
-                (d <= self->dmax) &&
-                (elangle*RAD2DEG >= self->emin) &&
-                (val != nodata) &&
-                (val != undetect)) {
-              *(z+nz) = dBZ2Z(offset+gain*val);
-              zsum = zsum + *(z+nz);
-              nz = nz+1;
+          for (ir = 0; ir < nrays; ir++) {
+            for (ib = 0; ib < nbins; ib++) {
+              PolarNavigator_reToDh(polnav, (ib+0.5)*rscale, elangle, &d, &h);
+              PolarScanParam_getValue (dbz, ib, ir, &val);
+              if ((h >= iz) &&
+                  (h < iz+self->dz) &&
+                  (d >= self->dmin) &&
+                  (d <= self->dmax) &&
+                  (elangle*RAD2DEG >= self->emin) &&
+                  (val != nodata) &&
+                  (val != undetect)) {
+                *(z+nz) = dBZ2Z(offset+gain*val);
+                zsum = zsum + *(z+nz);
+                nz = nz+1;
+              }
             }
           }
+          RAVE_OBJECT_RELEASE(dbz);
         }
-        RAVE_OBJECT_RELEASE(dbz);
+        RAVE_OBJECT_RELEASE(scan);
       }
-      RAVE_OBJECT_RELEASE(scan);
     }
 
     // radial wind calculations
@@ -362,28 +581,35 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj) {
       zstd = Z2dBZ(zstd);
     }
 
+    /* Calculate the x-component (East) and y-component (North) of the wind 
+       velocity using the wind direction and the magnitude of the wind velocity */
+    vdir_rad = vdir * DEG2RAD;
+    u_wnd_comp = vvel * cos(vdir_rad);
+    v_wnd_comp = vvel * sin(vdir_rad);
+    
     if ((nv < NMIN) || (nz < NMIN)) {
-      RaveField_setValue(ff_field, 0, yindex, -9999.0);
-      RaveField_setValue(ff_dev_field, 0, yindex, -9999.0);
-      RaveField_setValue(dd_field, 0, yindex, -9999.0);
-      RaveField_setValue(dbzh_field, 0, yindex, -9999.0);
-      RaveField_setValue(dbzh_dev_field, 0, yindex, -9999.0);
-      RaveField_setValue(nz_field, 0, yindex, 0);
+      /* Add when needed: RaveField_setValue(ff_field, 0, yindex, self->nodata_VP);
+      RaveField_setValue(ff_dev_field, 0, yindex, self->nodata_VP);
+      RaveField_setValue(dd_field, 0, yindex, self->nodata_VP);
+      RaveField_setValue(dbzh_field, 0, yindex, self->nodata_VP);
+      RaveField_setValue(dbzh_dev_field, 0, yindex, self->nodata_VP);
+      RaveField_setValue(nz_field, 0, yindex, 0); */
       RaveField_setValue(nv_field, 0, yindex, 0);
+      RaveField_setValue(HGHT_field, 0, yindex,centerOfLayer);
+      RaveField_setValue(UWND_field, 0, yindex,self->nodata_VP);
+      RaveField_setValue(VWND_field, 0, yindex,self->nodata_VP);
     } else {
-      RaveField_setValue(ff_field, 0, yindex, vvel);
+      /* Add wgen needed: RaveField_setValue(ff_field, 0, yindex, vvel);
       RaveField_setValue(ff_dev_field, 0, yindex, vstd);
       RaveField_setValue(dd_field, 0, yindex, vdir);
       RaveField_setValue(dbzh_field, 0, yindex, zmean);
       RaveField_setValue(dbzh_dev_field, 0, yindex, zstd);
-      RaveField_setValue(nz_field, 0, yindex, nz);
+      RaveField_setValue(nz_field, 0, yindex, nz); */
       RaveField_setValue(nv_field, 0, yindex, nv);
+      RaveField_setValue(HGHT_field, 0, yindex,centerOfLayer);
+      RaveField_setValue(UWND_field, 0, yindex,u_wnd_comp);
+      RaveField_setValue(VWND_field, 0, yindex,v_wnd_comp);
     }
-
-/*    if ((nv < NMIN) || (nz < NMIN))
-      printf("%6d %6d %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f \n", iz+self->dz/2, 0, -9999., -9999., -9999., -9999., -9999., -9999.);
-    else
-      printf("%6d %6d %8.2f %8.2f %8.2f %8.2f %8.2f %8.2f \n", iz+self->dz/2, nv, vvel, vstd, vdir, -9999., zmean, zstd);*/
 
     RAVE_FREE(A);
     RAVE_FREE(b);
@@ -394,60 +620,116 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj) {
     yindex++; /* Next interval*/
   }
 
+  /* Set values used for /dataset1/what attributes */  
+  starttime = starttimeFirst;
+  endtime = endtimeFirst;
+  startdate = startdateFirst;
+  enddate = enddateFirst;
+
+  
   result = RAVE_OBJECT_NEW(&VerticalProfile_TYPE);
   if (result != NULL) {
-    if (!VerticalProfile_setFF(result, ff_field) ||
+    if (!VerticalProfile_setUWND(result, UWND_field) ||
+        !VerticalProfile_setVWND(result, VWND_field) ||
+        !VerticalProfile_setNV(result, nv_field) ||
+        !VerticalProfile_setHGHT(result, HGHT_field)) {
+        /* Add when needed: !VerticalProfile_setFF(result, ff_field) ||
         !VerticalProfile_setFFDev(result, ff_dev_field) ||
         !VerticalProfile_setDD(result, dd_field) ||
         !VerticalProfile_setDBZ(result, dbzh_field) ||
-        !VerticalProfile_setDBZDev(result, dbzh_dev_field)) {
+        !VerticalProfile_setDBZDev(result, dbzh_dev_field)) */
       RAVE_ERROR0("Failed to set vertical profile fields");
       RAVE_OBJECT_RELEASE(result);
     }
   }
+
   VerticalProfile_setLongitude(result, PolarVolume_getLongitude(inobj));
   VerticalProfile_setLatitude(result, PolarVolume_getLatitude(inobj));
   VerticalProfile_setHeight(result, PolarVolume_getHeight(inobj));
   VerticalProfile_setSource(result, PolarVolume_getSource(inobj));
   VerticalProfile_setInterval(result, self->dz);
   VerticalProfile_setLevels(result, ysize);
-  VerticalProfile_setMinheight(result, self->dz / 2);
+  VerticalProfile_setMinheight(result, 0);
   VerticalProfile_setMaxheight(result, self->hmax);
   VerticalProfile_setDate(result, PolarVolume_getDate(inobj));
   VerticalProfile_setTime(result, PolarVolume_getTime(inobj));
-
-  WrwpInternal_findAndAddAttribute(result, inobj, "how/highprf");
-  WrwpInternal_findAndAddAttribute(result, inobj, "how/lowprf");
-  WrwpInternal_findAndAddAttribute(result, inobj, "how/pulsewidth");
-  WrwpInternal_findAndAddAttribute(result, inobj, "how/wavelength");
-
-  WrwpInternal_findAndAddAttribute(result, inobj, "how/RXbandwidth");
-  WrwpInternal_findAndAddAttribute(result, inobj, "how/RXlossH");
-  WrwpInternal_findAndAddAttribute(result, inobj, "how/TXlossH");
-  WrwpInternal_findAndAddAttribute(result, inobj, "how/antgainH");
-  WrwpInternal_findAndAddAttribute(result, inobj, "how/azmethod");
-  WrwpInternal_findAndAddAttribute(result, inobj, "how/binmethod");
-  WrwpInternal_findAndAddAttribute(result, inobj, "how/malfunc");
-  WrwpInternal_findAndAddAttribute(result, inobj, "how/nomTXpower");
-  WrwpInternal_findAndAddAttribute(result, inobj, "how/radar_msg");
-  WrwpInternal_findAndAddAttribute(result, inobj, "how/radconstH");
-  WrwpInternal_findAndAddAttribute(result, inobj, "how/radomelossH");
-  WrwpInternal_findAndAddAttribute(result, inobj, "how/rpm");
-  WrwpInternal_findAndAddAttribute(result, inobj, "how/software");
-  WrwpInternal_findAndAddAttribute(result, inobj, "how/system");
+  
+  /* Set the times and product, starttime is the starttime for the lowest elev
+     endtime is the endtime for the highest elev. */
+  VerticalProfile_setStartTime(result, starttime);
+  VerticalProfile_setEndTime(result, endtime);
+  VerticalProfile_setStartDate(result, startdate);
+  VerticalProfile_setEndDate(result, enddate);
+  VerticalProfile_setProduct(result, product);
+   
+  /* Need to filter the attribute data with respect to selected min elangle
+     Below attributes satisfy reguirements from E-profile, add other when needed */
+  
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/highprf", self->emin);
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/lowprf", self->emin);
+  /*WrwpInternal_findAndAddAttribute(result, inobj, "how/pulsewidth", self->emin); */
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/wavelength", self->emin);
+ /* WrwpInternal_findAndAddAttribute(result, inobj, "how/RXbandwidth", self->emin);
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/RXlossH", self->emin);
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/TXlossH", self->emin);
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/antgainH", self->emin);
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/azmethod", self->emin);
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/binmethod", self->emin);
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/malfunc", self->emin);
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/nomTXpower", self->emin);
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/radar_msg", self->emin);
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/radconstH", self->emin);
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/radomeloss", self->emin);
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/rpm", self->emin);
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/software", self->emin);
+  WrwpInternal_findAndAddAttribute(result, inobj, "how/system", self->emin);*/
 
   WrwpInternal_addIntAttribute(result, "how/minrange", Wrwp_getDMIN(self));
   WrwpInternal_addIntAttribute(result, "how/maxrange", Wrwp_getDMAX(self));
+  
+  
+  /* Put in selected attributes in selected fields, currently a nodata, gain and
+     offset are defined for UWND and VWND and are put under what/nodata. */
+  WrwpInternal_addDoubleAttr2Field(UWND_field, "what/nodata", self->nodata_VP);
+  WrwpInternal_addDoubleAttr2Field(UWND_field, "what/gain", self->gain_VP);
+  WrwpInternal_addDoubleAttr2Field(UWND_field, "what/offset", self->offset_VP);
+  WrwpInternal_addDoubleAttr2Field(UWND_field, "what/undetect", self->undetect_VP);
+  
+  VerticalProfile_addField(result, UWND_field);
+  
+  WrwpInternal_addDoubleAttr2Field(VWND_field, "what/nodata", self->nodata_VP);
+  WrwpInternal_addDoubleAttr2Field(VWND_field, "what/gain", self->gain_VP);
+  WrwpInternal_addDoubleAttr2Field(VWND_field, "what/offset", self->offset_VP);
+  WrwpInternal_addDoubleAttr2Field(VWND_field, "what/undetect", self->undetect_VP);
+  
+  VerticalProfile_addField(result, VWND_field);
+  
+  WrwpInternal_addDoubleAttr2Field(HGHT_field, "what/nodata", self->nodata_VP);
+  WrwpInternal_addDoubleAttr2Field(HGHT_field, "what/gain", self->gain_VP);
+  WrwpInternal_addDoubleAttr2Field(HGHT_field, "what/offset", self->offset_VP);
+  WrwpInternal_addDoubleAttr2Field(HGHT_field, "what/undetect", self->undetect_VP);
+  
+  VerticalProfile_addField(result, HGHT_field);
+  
+  WrwpInternal_addDoubleAttr2Field(nv_field, "what/nodata", self->nodata_VP);
+  WrwpInternal_addDoubleAttr2Field(nv_field, "what/gain", self->gain_VP);
+  WrwpInternal_addDoubleAttr2Field(nv_field, "what/offset", self->offset_VP);
+  WrwpInternal_addDoubleAttr2Field(nv_field, "what/undetect", self->undetect_VP);
+  
+  VerticalProfile_addField(result, nv_field);
 
 done:
-  RAVE_OBJECT_RELEASE(polnav);
+  /* Add when needed: RAVE_OBJECT_RELEASE(polnav);
   RAVE_OBJECT_RELEASE(ff_field);
   RAVE_OBJECT_RELEASE(ff_dev_field);
   RAVE_OBJECT_RELEASE(dd_field);
   RAVE_OBJECT_RELEASE(dbzh_field);
   RAVE_OBJECT_RELEASE(dbzh_dev_field);
-  RAVE_OBJECT_RELEASE(nz_field);
+  RAVE_OBJECT_RELEASE(nz_field); */
   RAVE_OBJECT_RELEASE(nv_field);
+  RAVE_OBJECT_RELEASE(HGHT_field);
+  RAVE_OBJECT_RELEASE(UWND_field);
+  RAVE_OBJECT_RELEASE(UWND_field);
 
   return result;
 }
