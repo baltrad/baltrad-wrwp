@@ -359,7 +359,7 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj) {
     goto done;
   }
 
-	polnav = RAVE_OBJECT_NEW (&PolarNavigator_TYPE);
+	polnav = RAVE_OBJECT_NEW(&PolarNavigator_TYPE);
 	PolarNavigator_setLat0(polnav, PolarVolume_getLatitude(inobj));
 	PolarNavigator_setLon0(polnav, PolarVolume_getLongitude(inobj));
 	PolarNavigator_setAlt0(polnav, PolarVolume_getHeight(inobj));
@@ -721,7 +721,8 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj) {
   VerticalProfile_addField(result, nv_field);
 
 done:
-  /* Add when needed: RAVE_OBJECT_RELEASE(polnav);
+  RAVE_OBJECT_RELEASE(polnav);
+  /* 
   RAVE_OBJECT_RELEASE(ff_field);
   RAVE_OBJECT_RELEASE(ff_dev_field);
   RAVE_OBJECT_RELEASE(dd_field);
