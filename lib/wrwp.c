@@ -407,9 +407,10 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj) {
       startDateOfThisScan = PolarScan_getStartDate(scan);
       endDateOfThisScan = PolarScan_getEndDate(scan);
       
-      RaveAttribute_t* attr = PolarScan_getAttribute(scan, "how/malfunc");
-      if (attr != NULL) {
-        RaveAttribute_getString(attr, &malfuncString); /* Set the malfuncString if attr is not NULL */
+      RaveAttribute_t* malfuncattr = PolarScan_getAttribute(scan, "how/malfunc");
+      if (malfuncattr != NULL) {
+        RaveAttribute_getString(malfuncattr, &malfuncString); /* Set the malfuncString if attr is not NULL */
+        RAVE_OBJECT_RELEASE(malfuncattr);
       }
       if (malfuncString == NULL || strcmp(malfuncString, "False") == 0) { /* Assuming malfuncString = NULL means no malfunc */
                   
@@ -732,7 +733,7 @@ done:
   RAVE_OBJECT_RELEASE(nv_field);
   RAVE_OBJECT_RELEASE(HGHT_field);
   RAVE_OBJECT_RELEASE(UWND_field);
-  RAVE_OBJECT_RELEASE(UWND_field);
+  RAVE_OBJECT_RELEASE(VWND_field);
 
   return result;
 }
