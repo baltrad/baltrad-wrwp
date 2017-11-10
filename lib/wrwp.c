@@ -21,9 +21,11 @@ along with HLHDF.  If not, see <http://www.gnu.org/licenses/>.
  * @author Gunther Haase, SMHI
  * @date 2013-02-06
  *
- * @author Ulf E. Nordh, SMHI
+ * @co-author Ulf E. Nordh, SMHI
  * @date 2017-02-23, started overhaul of the code to achieve better
- * resemblance with N2 and requirements from customer E-profile
+ * resemblance with N2 and requirements from customer E-profile. 
+ * This means blockage of some of the existing files and definition of
+ * new ones, in particular HGHT, UWND and VWND.
  * 
  */
 

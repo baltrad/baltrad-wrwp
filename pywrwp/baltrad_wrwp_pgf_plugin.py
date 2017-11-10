@@ -70,7 +70,7 @@ def arglist2dict(arglist):
 #
     
 def strToNumber(sval):
-  if type(sval) is not str: # Don't do anything if it is not a string as input
+  if type(sval) is not str: # Avoid doing anything if it is not a string as input
     return sval
   else:
     try:
