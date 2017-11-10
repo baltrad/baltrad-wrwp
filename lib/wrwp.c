@@ -23,9 +23,7 @@ along with HLHDF.  If not, see <http://www.gnu.org/licenses/>.
  *
  * @co-author Ulf E. Nordh, SMHI
  * @date 2017-02-23, started overhaul of the code to achieve better
- * resemblance with N2 and requirements from customer E-profile. 
- * This means blockage of some of the existing files and definition of
- * new ones, in particular HGHT, UWND and VWND.
+ * resemblance with N2 and requirements from customer E-profile
  * 
  */
 
@@ -275,32 +273,32 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj) {
   double centerOfLayer, u_wnd_comp, v_wnd_comp, vdir_rad;
   int ysize = 0, yindex = 0;
   
-  const char* starttime = "";
-  const char* endtime = "";
-  const char* startdate = "";
-  const char* enddate = "";
+  const char* starttime = NULL;
+  const char* endtime = NULL;
+  const char* startdate = NULL;
+  const char* enddate = NULL;
   const char* product = "VP";
   
-  const char* startTimeOfThisScan = "";
-  const char* endTimeOfThisScan = "";
-  const char* startDateOfThisScan = "";
-  const char* endDateOfThisScan = "";
+  const char* startTimeOfThisScan = NULL;
+  const char* endTimeOfThisScan = NULL;
+  const char* startDateOfThisScan = NULL;
+  const char* endDateOfThisScan = NULL;
     
-  const char* starttimeFirst = "";
-  const char* endtimeFirst = "";
-  const char* startdateFirst = "";
-  const char* enddateFirst = "";
+  const char* starttimeFirst = NULL;
+  const char* endtimeFirst = NULL;
+  const char* startdateFirst = NULL;
+  const char* enddateFirst = NULL;
       
-  const char* starttimeNext = "";
-  const char* endtimeNext = "";
-  const char* startdateNext = "";
-  const char* enddateNext = "";
+  const char* starttimeNext = NULL;
+  const char* endtimeNext = NULL;
+  const char* startdateNext = NULL;
+  const char* enddateNext = NULL;
   
-  char* startDateTimeStrFirst = "";
-  char* endDateTimeStrFirst = "";
+  char* startDateTimeStrFirst = NULL;
+  char* endDateTimeStrFirst = NULL;
   
-  char* startDateTimeStrNext = "";
-  char* endDateTimeStrNext = "";
+  char* startDateTimeStrNext = NULL;
+  char* endDateTimeStrNext = NULL;
    
   char starttimeArrFirst[10];
   char endtimeArrFirst[10]; 
@@ -312,7 +310,7 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj) {
   char startdateArrNext[10];
   char enddateArrNext[10];
 
-  char* malfuncString = "";
+  char* malfuncString = NULL;
    
   /* The four field below are the ones fulfilling the requirements from the user E-profiles */
   RaveField_t *nv_field = NULL, *HGHT_field = NULL;
@@ -408,10 +406,12 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj) {
       endTimeOfThisScan = PolarScan_getEndTime(scan);
       startDateOfThisScan = PolarScan_getStartDate(scan);
       endDateOfThisScan = PolarScan_getEndDate(scan);
+      
       RaveAttribute_t* attr = PolarScan_getAttribute(scan, "how/malfunc");
-      RaveAttribute_getString(attr, &malfuncString);
-
-      if (strcmp(malfuncString, "False") == 0) {
+      if (attr != NULL) {
+        RaveAttribute_getString(attr, &malfuncString); /* Set the malfuncString if attr is not NULL */
+      }
+      if (malfuncString == NULL || strcmp(malfuncString, "False") == 0) { /* Assuming malfuncString = NULL means no malfunc */
                   
         if (elangleForThisScan * RAD2DEG >= self->emin && firstInit == 0) {
           /* Initialize using the first scan and define 2 strings for the combined datetime */
