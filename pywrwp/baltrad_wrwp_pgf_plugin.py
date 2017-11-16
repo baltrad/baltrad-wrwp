@@ -21,7 +21,7 @@ along with RAVE.  If not, see <http://www.gnu.org/licenses/>.
 ## framework.
 ## Register in pgf with
 ## --name=eu.baltrad.beast.GenerateAcrr
-## --floats=minelevationangle,velocitythreshold --ints=interval,maxheight,mindistance,maxdistance -m baltrad_wrwp_pgf_plugin -f generate
+## --floats=minelevationangle,velocitythreshold --ints=interval,maxheight,mindistance,maxdistance --strings=fields -m baltrad_wrwp_pgf_plugin -f generate
 ##
 ## The WRWP generation is executed by providing a polar volume that a wind profile is calculated on
 ##
@@ -85,7 +85,7 @@ def strToNumber(sval):
 def generate(files, arguments):
   args = arglist2dict(arguments)
   wrwp = _wrwp.new()
-  
+  fields = None
   if "interval" in args.keys():
     wrwp.dz = strToNumber(args["interval"])
   if "maxheight" in args.keys():
@@ -98,6 +98,8 @@ def generate(files, arguments):
     wrwp.emin = strToNumber(args["minelevationangle"])
   if "velocitythreshold" in args.keys():
     wrwp.vmin = strToNumber(args["velocitythreshold"])
+  if "fields" in args.keys():
+    fields = args["fields"]
 
   if len(files) != 1:
     raise AttributeError, "Must call plugin with _one_ polar volume"
@@ -112,7 +114,7 @@ def generate(files, arguments):
   if not _polarvolume.isPolarVolume(obj):
     raise AttributeError, "Must call plugin with a polar volume"
 
-  profile = wrwp.generate(obj)
+  profile = wrwp.generate(obj, fields)
   
   fileno, outfile = rave_tempfile.mktemp(suffix='.h5', close="True")
   

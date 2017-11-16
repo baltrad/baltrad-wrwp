@@ -114,7 +114,7 @@ class WrwpTest(unittest.TestCase):
     generator.hmax = 2000
     generator.dz = 200
     
-    vp = generator.generate(pvol)
+    vp = generator.generate(pvol, "UWND,VWND,HGHT,NV")
     
     uwnd = vp.getUWND()
     vwnd = vp.getVWND()
@@ -163,7 +163,7 @@ class WrwpTest(unittest.TestCase):
     generator.hmax = 2000
     generator.dz = 200
     
-    vp = generator.generate(pvol)
+    vp = generator.generate(pvol, "UWND,VWND,HGHT,NV")
     
     uwnd = vp.getUWND()
     vwnd = vp.getVWND()
@@ -196,22 +196,22 @@ class WrwpTest(unittest.TestCase):
     
     self.assertEquals(900, vp.getAttribute("how/lowprf"))
     self.assertEquals(1200, vp.getAttribute("how/highprf"))
-    #self.assertAlmostEqual(0.61, vp.getAttribute("how/pulsewidth"), 4)
+    self.assertAlmostEqual(0.61, vp.getAttribute("how/pulsewidth"), 4)
     self.assertAlmostEqual(5.35, vp.getAttribute("how/wavelength"), 4)
-    #self.assertAlmostEqual(0.8, vp.getAttribute("how/RXbandwidth"), 4)
-    #self.assertAlmostEqual(3.1, vp.getAttribute("how/RXlossH"), 4)
-    #self.assertAlmostEqual(1.9, vp.getAttribute("how/TXlossH"), 4)
-    #self.assertAlmostEqual(44.9, vp.getAttribute("how/antgainH"), 4)
-    #self.assertEquals("AVERAGE", vp.getAttribute("how/azmethod"))
-    #self.assertEquals("AVERAGE", vp.getAttribute("how/binmethod"))
-    #self.assertEquals("False", vp.getAttribute("how/malfunc"))
-    #self.assertAlmostEqual(277.4, vp.getAttribute("how/nomTXpower"), 4)
-    #self.assertEquals("b94 3dd 000 000 000:", vp.getAttribute("how/radar_msg"), 4)
-    #self.assertAlmostEqual(73.101, vp.getAttribute("how/radconstH"), 4)
-    #self.assertAlmostEqual(0.2, vp.getAttribute("how/radomelossH"), 4)
-    #self.assertAlmostEqual(2.0, vp.getAttribute("how/rpm"), 4)
-    #self.assertEquals("PARTEC2", vp.getAttribute("how/software"))
-    #self.assertEquals("ERIC", vp.getAttribute("how/system"))
+    self.assertAlmostEqual(0.8, vp.getAttribute("how/RXbandwidth"), 4)
+    self.assertAlmostEqual(3.1, vp.getAttribute("how/RXlossH"), 4)
+    self.assertAlmostEqual(1.9, vp.getAttribute("how/TXlossH"), 4)
+    self.assertAlmostEqual(44.9, vp.getAttribute("how/antgainH"), 4)
+    self.assertEquals("AVERAGE", vp.getAttribute("how/azmethod"))
+    self.assertEquals("AVERAGE", vp.getAttribute("how/binmethod"))
+    self.assertEquals("False", vp.getAttribute("how/malfunc"))
+    self.assertAlmostEqual(277.4, vp.getAttribute("how/nomTXpower"), 4)
+    self.assertEquals("b94 3dd 000 000 000:", vp.getAttribute("how/radar_msg"), 4)
+    self.assertAlmostEqual(73.101, vp.getAttribute("how/radconstH"), 4)
+    self.assertAlmostEqual(0.2, vp.getAttribute("how/radomelossH"), 4)
+    self.assertAlmostEqual(2.0, vp.getAttribute("how/rpm"), 4)
+    self.assertEquals("PARTEC2", vp.getAttribute("how/software"))
+    self.assertEquals("ERIC", vp.getAttribute("how/system"))
     self.assertEquals(4000, vp.getAttribute("how/minrange"))
     self.assertEquals(40000, vp.getAttribute("how/maxrange"))
     

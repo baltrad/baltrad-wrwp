@@ -227,8 +227,10 @@ double Wrwp_getVMIN(Wrwp_t* self);
  * Function for deriving wind and reflectivity profiles from polar volume data
  * @param[in] self - self
  * @param[in] iobj - input volume
+ * @param[in] fieldsToGenerate - an comma-separated list of quantities. If NULL, then default
+ * behaviour is to add ff,ff_dev,dd,dbzh and dbzh_dev
  * @returns the wind profile
  */
-VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj);
+VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char* fieldsToGenerate);
 
 #endif
