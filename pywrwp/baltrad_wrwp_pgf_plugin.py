@@ -20,7 +20,7 @@ along with RAVE.  If not, see <http://www.gnu.org/licenses/>.
 ## Plugin for generating the wrwp product generation that is initiated from the beast
 ## framework.
 ## Register in pgf with
-## --name=eu.baltrad.beast.GenerateAcrr
+## --name=eu.baltrad.beast.generatewrwp
 ## --floats=minelevationangle,velocitythreshold --ints=interval,maxheight,mindistance,maxdistance --strings=fields -m baltrad_wrwp_pgf_plugin -f generate
 ##
 ## The WRWP generation is executed by providing a polar volume that a wind profile is calculated on
@@ -34,17 +34,28 @@ along with RAVE.  If not, see <http://www.gnu.org/licenses/>.
 ## @file
 ## @author Anders Henja, SMHI
 ## @date 2013-09-25
+##
+## @co-autor Ulf E. Nordh, SMHI
+## @date 2018-02-08
+##
+## Slight adjustment done to the call to wrwp.generate in function generate.
+## The call is done with try-except to deal with the situation that
+## the returned result is NULL. In addition, logging is inserted.
 
 import _wrwp
 import _rave
 import _raveio
 import _polarvolume
 import string
+import logging
+import rave_pgf_logger
 import rave_tempfile
 import odim_source
 import math
 
 from rave_defines import CENTER_ID, GAIN, OFFSET
+
+logger = rave_pgf_logger.create_logger()
 
 ravebdb = None
 try:
@@ -78,11 +89,12 @@ def strToNumber(sval):
     except ValueError, e:
       return float(sval)
 
-## Creates a composite
-#@param files the list of files to be used for generating the composite
-#@param arguments the arguments defining the composite
-#@return a temporary h5 file with the composite
+## Creates a vertical profile
+#@param files the list of files to be used for generating the vertical profile
+#@param arguments the arguments defining the vertical profile
+#@return a temporary h5 file with the vertical profile
 def generate(files, arguments):
+
   args = arglist2dict(arguments)
   wrwp = _wrwp.new()
   fields = None
@@ -103,6 +115,8 @@ def generate(files, arguments):
 
   if len(files) != 1:
     raise AttributeError, "Must call plugin with _one_ polar volume"
+  
+  logger.debug("Start generating vertical profile from polar volume %s"%files[0])
 
   obj = None
   if ravebdb != None:
@@ -114,13 +128,15 @@ def generate(files, arguments):
   if not _polarvolume.isPolarVolume(obj):
     raise AttributeError, "Must call plugin with a polar volume"
 
-  profile = wrwp.generate(obj, fields)
-  
-  fileno, outfile = rave_tempfile.mktemp(suffix='.h5', close="True")
-  
-  ios = _raveio.new()
-  ios.object = profile
-  ios.filename = outfile
-  ios.save()
-
-  return outfile
+  try:
+    profile = wrwp.generate(obj, fields)  
+    fileno, outfile = rave_tempfile.mktemp(suffix='.h5', close="True")
+    ios = _raveio.new()
+    ios.object = profile
+    ios.filename = outfile
+    ios.save()
+    logger.debug("Finished generating vertical profile from polar volume %s"%files[0])
+    return outfile
+  except:
+    logger.info("No vertical profile could be generated from polar volume %s"%files[0])
+    return None

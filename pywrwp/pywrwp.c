@@ -149,30 +149,32 @@ static PyObject* _pywrwp_new(PyObject* self, PyObject* args)
 
 static PyObject* _pywrwp_generate(PyWrwp* self, PyObject* args)
 {
-	PyObject* obj = NULL;
-	PyVerticalProfile* pyvp = NULL;
-	VerticalProfile_t* vp = NULL;
-	char* fieldsToGenerate = NULL;
+  PyObject* obj = NULL;
+  PyVerticalProfile* pyvp = NULL;
+  VerticalProfile_t* vp = NULL;
+  char* fieldsToGenerate = NULL;
 
-	if(!PyArg_ParseTuple(args, "O|z", &obj, &fieldsToGenerate)) {
-		return NULL;
-	}
+  if(!PyArg_ParseTuple(args, "O|z", &obj, &fieldsToGenerate)) {
+    return NULL;
+  }
 
-	if (!PyPolarVolume_Check(obj)) {
-	  raiseException_returnNULL(PyExc_AttributeError, "In argument must be a polar volume");
-	}
+  if (!PyPolarVolume_Check(obj)) {
+    raiseException_returnNULL(PyExc_AttributeError, "In argument must be a polar volume");
+  }
 
-	vp = Wrwp_generate(self->wrwp, ((PyPolarVolume*)obj)->pvol, fieldsToGenerate);
+  vp = Wrwp_generate(self->wrwp, ((PyPolarVolume*)obj)->pvol, fieldsToGenerate);
 
-	if (vp == NULL) {
-	  raiseException_gotoTag(done, PyExc_RuntimeError, "Failed to generate vertical profile");
-	}
+  if (vp == NULL) {
+    raiseException_gotoTag(done, PyExc_RuntimeError, "Failed to generate vertical profile");
+  }
 
-	pyvp = PyVerticalProfile_New(vp);
+  pyvp = PyVerticalProfile_New(vp);
 
+  RAVE_OBJECT_RELEASE(vp);
+    
 done:
   RAVE_OBJECT_RELEASE(vp);
-	return (PyObject*)pyvp;
+  return (PyObject*)pyvp;
 }
 
 /**
