@@ -567,6 +567,7 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
       RAVE_FREE(v);
       RAVE_FREE(z);
       RAVE_FREE(az);
+      RAVE_INFO0("Could not find any acceptable scans, dropping out");
       goto done;
     } 
 
@@ -687,7 +688,6 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
       RAVE_OBJECT_RELEASE(result);
     }
   }
-
   VerticalProfile_setLongitude(result, PolarVolume_getLongitude(inobj));
   VerticalProfile_setLatitude(result, PolarVolume_getLatitude(inobj));
   VerticalProfile_setHeight(result, PolarVolume_getHeight(inobj));
@@ -698,7 +698,7 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
   VerticalProfile_setMaxheight(result, self->hmax);
   VerticalProfile_setDate(result, PolarVolume_getDate(inobj));
   VerticalProfile_setTime(result, PolarVolume_getTime(inobj));
-  
+
   /* Set the times and product, starttime is the starttime for the lowest elev
      endtime is the endtime for the highest elev. */
   VerticalProfile_setStartDate(result, RaveDateTime_getDate(firstStartDT));
