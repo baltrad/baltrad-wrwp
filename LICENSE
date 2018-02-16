@@ -1,5 +1,4 @@
-'''
-Copyright (C) 2009 Swedish Meteorological and Hydrological Institute, SMHI,
+Copyright 2009- Swedish Meteorological and Hydrological Institute
 
 This file is part of baltrad-wrwp.
 
@@ -15,17 +14,3 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with baltrad-wrwp.  If not, see <http://www.gnu.org/licenses/>.
-------------------------------------------------------------------------*/
-
-Test suite for baltrad-wrwp that generates junit-like reports.
-
-@file
-@author Anders Henja (Swedish Meteorological and Hydrological Institute, SMHI)
-@date 2013-09-17
-'''
-import xmlrunner
-
-from WrwpFullTestSuite import *
-
-if __name__=="__main__":
-  xmlrunner.main()
