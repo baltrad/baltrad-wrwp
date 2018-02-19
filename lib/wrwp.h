@@ -123,28 +123,28 @@ void Wrwp_setUNDETECT_VP(Wrwp_t* self, int nodata_vp);
  * @param[in] self - self
  * @return the gain value
  */
-int Wrwp_getGAIN_VP(Wrwp_t* self);
+double Wrwp_getGAIN_VP(Wrwp_t* self);
 
 /**
  * Sets the gain value for the vertical profile
  * @param[in] self - self
  * @param[in] gain_VP - the gain value
  */
-void Wrwp_setGAIN_VP(Wrwp_t* self, int nodata_vp);
+void Wrwp_setGAIN_VP(Wrwp_t* self, double gain_vp);
 
 /**
  * Returns the offset value used for vertical profiles
  * @param[in] self - self
  * @return the offset value
  */
-int Wrwp_getOFFSET_VP(Wrwp_t* self);
+double Wrwp_getOFFSET_VP(Wrwp_t* self);
 
 /**
  * Sets the offset value for the profile
  * @param[in] self - self
  * @param[in] offset_VP - the offset value
  */
-void Wrwp_setOFFSET_VP(Wrwp_t* self, int nodata_vp);
+void Wrwp_setOFFSET_VP(Wrwp_t* self, double offset_vp);
 
 /**
  * Returns the height interval for deriving a profile [m]

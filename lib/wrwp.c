@@ -263,25 +263,25 @@ int Wrwp_getUNDETECT_VP(Wrwp_t* self)
   return self->undetect_VP;
 }
 
-void Wrwp_setGAIN_VP(Wrwp_t* self, int gain_VP)
+void Wrwp_setGAIN_VP(Wrwp_t* self, double gain_VP)
 {
   RAVE_ASSERT((self != NULL), "self == NULL");
   self->gain_VP = gain_VP;
 }
 
-int Wrwp_getGAIN_VP(Wrwp_t* self)
+double Wrwp_getGAIN_VP(Wrwp_t* self)
 {
   RAVE_ASSERT((self != NULL), "self == NULL");
   return self->gain_VP;
 }
 
-void Wrwp_setOFFSET_VP(Wrwp_t* self, int offset_VP)
+void Wrwp_setOFFSET_VP(Wrwp_t* self, double offset_VP)
 {
   RAVE_ASSERT((self != NULL), "self == NULL");
   self->offset_VP = offset_VP;
 }
 
-int Wrwp_getOFFSET_VP(Wrwp_t* self)
+double Wrwp_getOFFSET_VP(Wrwp_t* self)
 {
   RAVE_ASSERT((self != NULL), "self == NULL");
   return self->offset_VP;
@@ -675,6 +675,7 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
 
   result = RAVE_OBJECT_NEW(&VerticalProfile_TYPE);
   if (result != NULL) {
+    VerticalProfile_setLevels(result, ysize);
     if ((uwnd_field != NULL && !VerticalProfile_setUWND(result, uwnd_field)) ||
         (vwnd_field != NULL && !VerticalProfile_setVWND(result, vwnd_field)) ||
         (nv_field != NULL && !VerticalProfile_setNV(result, nv_field)) ||
@@ -693,7 +694,6 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
   VerticalProfile_setHeight(result, PolarVolume_getHeight(inobj));
   VerticalProfile_setSource(result, PolarVolume_getSource(inobj));
   VerticalProfile_setInterval(result, self->dz);
-  VerticalProfile_setLevels(result, ysize);
   VerticalProfile_setMinheight(result, 0);
   VerticalProfile_setMaxheight(result, self->hmax);
   VerticalProfile_setDate(result, PolarVolume_getDate(inobj));
