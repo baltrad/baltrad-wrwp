@@ -41,7 +41,7 @@ static void PrintUsage(char* name, int full)
     printf("--vmin=<value>     - Radial velocity threshold [m/s] (default: %f)\n", VMIN);
     printf("\n");
     printf("<input volume.h>  must be a polar volume in ODIM H5 format\n");
-    printf("<output verticalprofile.h5> will be a vertical profile in ODIM H5 format");
+    printf("<output verticalprofile.h5> will be a vertical profile in ODIM H5 format\n\n");
   }
 
   RAVE_FREE(namecopy);
