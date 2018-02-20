@@ -266,6 +266,10 @@ int Wrwp_getUNDETECT_VP(Wrwp_t* self)
 void Wrwp_setGAIN_VP(Wrwp_t* self, double gain_VP)
 {
   RAVE_ASSERT((self != NULL), "self == NULL");
+  if (gain_VP == 0.0) {
+    RAVE_ERROR0("Trying to set gain to 0.0");
+    return;
+  }
   self->gain_VP = gain_VP;
 }
 
@@ -375,6 +379,7 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
   RaveList_t* wantedFields = NULL;
 
   RAVE_ASSERT((self != NULL), "self == NULL");
+  RAVE_ASSERT((self->gain_VP != 0.0), "gain_VP == 0.0");
 
   wantedFields = WrwpInternal_createFieldsList(fieldsToGenerate);
 
@@ -632,9 +637,9 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
            
     if ((nv < NMIN) || (nz < NMIN)) {
       if (nv_field != NULL) RaveField_setValue(nv_field, 0, yindex, 0);
-      if (hght_field != NULL) RaveField_setValue(hght_field, 0, yindex,centerOfLayer);
-      if (uwnd_field != NULL) RaveField_setValue(uwnd_field, 0, yindex,self->nodata_VP);
-      if (vwnd_field != NULL) RaveField_setValue(vwnd_field, 0, yindex,self->nodata_VP);
+      if (hght_field != NULL) RaveField_setValue(hght_field, 0, yindex, centerOfLayer / 1000.0); /* in km */
+      if (uwnd_field != NULL) RaveField_setValue(uwnd_field, 0, yindex, self->nodata_VP);
+      if (vwnd_field != NULL) RaveField_setValue(vwnd_field, 0, yindex, self->nodata_VP);
       if (ff_field != NULL) RaveField_setValue(ff_field, 0, yindex, self->nodata_VP);
       if (ff_dev_field != NULL) RaveField_setValue(ff_dev_field, 0, yindex, self->nodata_VP);
       if (dd_field != NULL) RaveField_setValue(dd_field, 0, yindex, self->nodata_VP);
@@ -643,15 +648,15 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
       if (nz_field != NULL) RaveField_setValue(nz_field, 0, yindex, 0);
     } else {
       if (nv_field != NULL) RaveField_setValue(nv_field, 0, yindex, nv);
-      if (hght_field != NULL) RaveField_setValue(hght_field, 0, yindex,centerOfLayer);
-      if (uwnd_field != NULL) RaveField_setValue(uwnd_field, 0, yindex,u_wnd_comp);
-      if (vwnd_field != NULL) RaveField_setValue(vwnd_field, 0, yindex,v_wnd_comp);
-      if (ff_field != NULL) RaveField_setValue(ff_field, 0, yindex, vvel);
-      if (ff_dev_field != NULL) RaveField_setValue(ff_dev_field, 0, yindex, vstd);
-      if (dd_field != NULL) RaveField_setValue(dd_field, 0, yindex, vdir);
-      if (dbzh_field != NULL) RaveField_setValue(dbzh_field, 0, yindex, zmean);
-      if (dbzh_dev_field != NULL) RaveField_setValue(dbzh_dev_field, 0, yindex, zstd);
-      if (nz_field != NULL) RaveField_setValue(nz_field, 0, yindex, nz);
+      if (hght_field != NULL) RaveField_setValue(hght_field, 0, yindex, centerOfLayer / 1000.0); /* in km */
+      if (uwnd_field != NULL) RaveField_setValue(uwnd_field, 0, yindex, (u_wnd_comp - self->offset_VP)/self->gain_VP);
+      if (vwnd_field != NULL) RaveField_setValue(vwnd_field, 0, yindex, (v_wnd_comp - self->offset_VP)/self->gain_VP);
+      if (ff_field != NULL) RaveField_setValue(ff_field, 0, yindex, (vvel - self->offset_VP)/self->gain_VP);
+      if (ff_dev_field != NULL) RaveField_setValue(ff_dev_field, 0, yindex, (vstd - self->offset_VP)/self->gain_VP);
+      if (dd_field != NULL) RaveField_setValue(dd_field, 0, yindex, (vdir - self->offset_VP)/self->gain_VP);
+      if (dbzh_field != NULL) RaveField_setValue(dbzh_field, 0, yindex, (zmean - self->offset_VP)/self->gain_VP);
+      if (dbzh_dev_field != NULL) RaveField_setValue(dbzh_dev_field, 0, yindex, (zstd - self->offset_VP)/self->gain_VP);
+      if (nz_field != NULL) RaveField_setValue(nz_field, 0, yindex, (nz - self->offset_VP)/self->gain_VP);
     }
 
     RAVE_FREE(A);
@@ -665,8 +670,8 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
 
   if (uwnd_field) WrwpInternal_addNodataUndetectGainOffset(uwnd_field, self->nodata_VP, self->undetect_VP, self->gain_VP, self->offset_VP);
   if (vwnd_field) WrwpInternal_addNodataUndetectGainOffset(vwnd_field, self->nodata_VP, self->undetect_VP, self->gain_VP, self->offset_VP);
-  if (hght_field) WrwpInternal_addNodataUndetectGainOffset(hght_field, self->nodata_VP, self->undetect_VP, self->gain_VP, self->offset_VP);
-  if (nv_field) WrwpInternal_addNodataUndetectGainOffset(nv_field, self->nodata_VP, self->undetect_VP, self->gain_VP, self->offset_VP);
+  if (hght_field) WrwpInternal_addNodataUndetectGainOffset(hght_field, -9999.0, -9999.0, 1.0, 0.0);
+  if (nv_field) WrwpInternal_addNodataUndetectGainOffset(nv_field, -1.0, -1.0, 1.0, 0.0);
   if (ff_field) WrwpInternal_addNodataUndetectGainOffset(ff_field, self->nodata_VP, self->undetect_VP, self->gain_VP, self->offset_VP);
   if (ff_dev_field) WrwpInternal_addNodataUndetectGainOffset(ff_dev_field, self->nodata_VP, self->undetect_VP, self->gain_VP, self->offset_VP);
   if (dd_field) WrwpInternal_addNodataUndetectGainOffset(dd_field, self->nodata_VP, self->undetect_VP, self->gain_VP, self->offset_VP);
