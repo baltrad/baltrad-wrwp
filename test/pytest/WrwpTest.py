@@ -213,8 +213,8 @@ class WrwpTest(unittest.TestCase):
     self.assertAlmostEqual(2.0, vp.getAttribute("how/rpm"), 4)
     self.assertEquals("PARTEC2", vp.getAttribute("how/software"))
     self.assertEquals("ERIC", vp.getAttribute("how/system"))
-    self.assertEquals(4000, vp.getAttribute("how/minrange"))
-    self.assertEquals(40000, vp.getAttribute("how/maxrange"))
+    self.assertEquals(4.0, vp.getAttribute("how/minrange"))
+    self.assertEquals(40.0, vp.getAttribute("how/maxrange"))
 
     robj = _raveio.new()
     robj.object = vp
@@ -278,8 +278,8 @@ class WrwpTest(unittest.TestCase):
       self.assertAlmostEqual(3.0, vp.getAttribute("how/rpm"), 4)
       self.assertEquals("EDGE", vp.getAttribute("how/software"))
       self.assertEquals("EECDWSR-2501C-SDP", vp.getAttribute("how/system"))
-      self.assertEquals(4000, vp.getAttribute("how/minrange"))
-      self.assertEquals(40000, vp.getAttribute("how/maxrange"))
+      self.assertEquals(4.0, vp.getAttribute("how/minrange"))
+      self.assertEquals(40.0, vp.getAttribute("how/maxrange"))
 
       robj = _raveio.new()
       robj.object = vp

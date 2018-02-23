@@ -115,9 +115,9 @@ static int WrwpInternal_findAndAddAttribute(VerticalProfile_t* vp, PolarVolume_t
   return found;
 }
 
-static int WrwpInternal_addIntAttribute(VerticalProfile_t* vp, const char* name, int value)
+static int WrwpInternal_addDoubleAttribute(VerticalProfile_t* vp, const char* name, double value)
 {
-  RaveAttribute_t* attr = RaveAttributeHelp_createLong(name, value);
+  RaveAttribute_t* attr = RaveAttributeHelp_createDouble(name, value);
   int result = 0;
   if (attr != NULL) {
     result = VerticalProfile_addAttribute(vp, attr);
@@ -125,6 +125,7 @@ static int WrwpInternal_addIntAttribute(VerticalProfile_t* vp, const char* name,
   RAVE_OBJECT_RELEASE(attr);
   return result;
 }
+
 
 /* Function that adds various quantities under a field's what in order to
    better resemble the function existing in vertical profiles from N2 */
@@ -634,29 +635,36 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
       zstd = sqrt(zstd/(nz-1));
       zstd = Z2dBZ(zstd);
     }
-           
-    if ((nv < NMIN) || (nz < NMIN)) {
-      if (nv_field != NULL) RaveField_setValue(nv_field, 0, yindex, 0);
-      if (hght_field != NULL) RaveField_setValue(hght_field, 0, yindex, centerOfLayer / 1000.0); /* in km */
+
+    /* Set the hght_field values */
+    if (hght_field != NULL) RaveField_setValue(hght_field, 0, yindex, centerOfLayer / 1000.0); /* in km */
+
+    /* If the number of points for wind is larger tahn threshold, set values, else set nodata */
+    if (nv < NMIN) {
+      if (nv_field != NULL) RaveField_setValue(nv_field, 0, yindex, -1.0); /* nodata for counter */
       if (uwnd_field != NULL) RaveField_setValue(uwnd_field, 0, yindex, self->nodata_VP);
       if (vwnd_field != NULL) RaveField_setValue(vwnd_field, 0, yindex, self->nodata_VP);
       if (ff_field != NULL) RaveField_setValue(ff_field, 0, yindex, self->nodata_VP);
       if (ff_dev_field != NULL) RaveField_setValue(ff_dev_field, 0, yindex, self->nodata_VP);
       if (dd_field != NULL) RaveField_setValue(dd_field, 0, yindex, self->nodata_VP);
-      if (dbzh_field != NULL) RaveField_setValue(dbzh_field, 0, yindex, self->nodata_VP);
-      if (dbzh_dev_field != NULL) RaveField_setValue(dbzh_dev_field, 0, yindex, self->nodata_VP);
-      if (nz_field != NULL) RaveField_setValue(nz_field, 0, yindex, 0);
     } else {
       if (nv_field != NULL) RaveField_setValue(nv_field, 0, yindex, nv);
-      if (hght_field != NULL) RaveField_setValue(hght_field, 0, yindex, centerOfLayer / 1000.0); /* in km */
       if (uwnd_field != NULL) RaveField_setValue(uwnd_field, 0, yindex, (u_wnd_comp - self->offset_VP)/self->gain_VP);
       if (vwnd_field != NULL) RaveField_setValue(vwnd_field, 0, yindex, (v_wnd_comp - self->offset_VP)/self->gain_VP);
       if (ff_field != NULL) RaveField_setValue(ff_field, 0, yindex, (vvel - self->offset_VP)/self->gain_VP);
       if (ff_dev_field != NULL) RaveField_setValue(ff_dev_field, 0, yindex, (vstd - self->offset_VP)/self->gain_VP);
       if (dd_field != NULL) RaveField_setValue(dd_field, 0, yindex, (vdir - self->offset_VP)/self->gain_VP);
+    }
+
+    /* If the number of points for reflectivity is larger than threshold, set values, else set nodata */
+    if (nz < NMIN) {
+      if (nz_field != NULL) RaveField_setValue(nz_field, 0, yindex, -1.0);
+      if (dbzh_field != NULL) RaveField_setValue(dbzh_field, 0, yindex, self->nodata_VP);
+      if (dbzh_dev_field != NULL) RaveField_setValue(dbzh_dev_field, 0, yindex, self->nodata_VP);
+    } else {
+      if (nz_field != NULL) RaveField_setValue(nz_field, 0, yindex, nz);
       if (dbzh_field != NULL) RaveField_setValue(dbzh_field, 0, yindex, (zmean - self->offset_VP)/self->gain_VP);
       if (dbzh_dev_field != NULL) RaveField_setValue(dbzh_dev_field, 0, yindex, (zstd - self->offset_VP)/self->gain_VP);
-      if (nz_field != NULL) RaveField_setValue(nz_field, 0, yindex, (nz - self->offset_VP)/self->gain_VP);
     }
 
     RAVE_FREE(A);
@@ -677,10 +685,18 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
   if (dd_field) WrwpInternal_addNodataUndetectGainOffset(dd_field, self->nodata_VP, self->undetect_VP, self->gain_VP, self->offset_VP);
   if (dbzh_field) WrwpInternal_addNodataUndetectGainOffset(dbzh_field, self->nodata_VP, self->undetect_VP, self->gain_VP, self->offset_VP);
   if (dbzh_dev_field) WrwpInternal_addNodataUndetectGainOffset(dbzh_dev_field, self->nodata_VP, self->undetect_VP, self->gain_VP, self->offset_VP);
+  if (nz_field) WrwpInternal_addNodataUndetectGainOffset(nz_field, -1.0, -1.0, 1.0, 0.0);
 
   result = RAVE_OBJECT_NEW(&VerticalProfile_TYPE);
   if (result != NULL) {
     VerticalProfile_setLevels(result, ysize);
+
+    /* Below are the fields that are possible to inject into the profile, note */
+    /* that the nz_field is not present, this requires that the ODIM spec */
+    /* is adjusted to allow TWO sample size arrays e.g. nv and nz, current spec */
+    /* contains only one sample size array n, with obvious consequences IF a */
+    /* combined (wind + refl), or a pure refl, profile is created */
+
     if ((uwnd_field != NULL && !VerticalProfile_setUWND(result, uwnd_field)) ||
         (vwnd_field != NULL && !VerticalProfile_setVWND(result, vwnd_field)) ||
         (nv_field != NULL && !VerticalProfile_setNV(result, nv_field)) ||
@@ -732,8 +748,8 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
   WrwpInternal_findAndAddAttribute(result, inobj, "how/rpm", self->emin);
   WrwpInternal_findAndAddAttribute(result, inobj, "how/software", self->emin);
   WrwpInternal_findAndAddAttribute(result, inobj, "how/system", self->emin);
-  WrwpInternal_addIntAttribute(result, "how/minrange", Wrwp_getDMIN(self));
-  WrwpInternal_addIntAttribute(result, "how/maxrange", Wrwp_getDMAX(self));
+  WrwpInternal_addDoubleAttribute(result, "how/minrange", (double)Wrwp_getDMIN(self) / 1000.0); /* km */
+  WrwpInternal_addDoubleAttribute(result, "how/maxrange", (double)Wrwp_getDMAX(self) / 1000.0); /* km */
 
 done:
   RAVE_OBJECT_RELEASE(polnav);
