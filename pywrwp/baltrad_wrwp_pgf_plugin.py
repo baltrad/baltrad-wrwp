@@ -86,7 +86,7 @@ def strToNumber(sval):
   else:
     try:
       return int(sval)
-    except ValueError, e:
+    except ValueError:
       return float(sval)
 
 ## Creates a vertical profile
@@ -114,7 +114,7 @@ def generate(files, arguments):
     fields = args["fields"]
 
   if len(files) != 1:
-    raise AttributeError, "Must call plugin with _one_ polar volume"
+    raise AttributeError("Must call plugin with _one_ polar volume")
   
   logger.debug("Start generating vertical profile from polar volume %s"%files[0])
 
@@ -126,7 +126,7 @@ def generate(files, arguments):
     obj = rio.object
 
   if not _polarvolume.isPolarVolume(obj):
-    raise AttributeError, "Must call plugin with a polar volume"
+    raise AttributeError("Must call plugin with a polar volume")
 
   try:
     profile = wrwp.generate(obj, fields)  
