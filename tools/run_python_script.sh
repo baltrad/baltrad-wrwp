@@ -25,6 +25,12 @@ RESULT=0
 RAVE_ROOT_DIR=`fgrep RAVE_ROOT_DIR "${DEF_MK_FILE}" | sed -e"s/\(RAVE_ROOT_DIR=[ \t]*\)//"`
 RAVE_ROOT_MKFILE="$RAVE_ROOT_DIR/mkf/def.mk"
 
+# Identify python version
+PYTHON_BIN=`fgrep PYTHON_BIN "${RAVE_ROOT_MKFILE}" | sed -e "s/\(PYTHON_BIN=[ \t]*\)//"`
+if [ "$PYTHON_BIN" = "" ]; then
+  PYTHON_BIN=python
+fi
+
 # HLHDFS MKF FILE
 HLHDF_MKFFILE=`fgrep HLHDF_HLDEF_MK_FILE "${RAVE_ROOT_MKFILE}" | sed -e"s/\(HLHDF_HLDEF_MK_FILE=[ \t]*\)//"`
 
@@ -34,7 +40,7 @@ HDF5_LDPATH=`fgrep HDF5_LIBDIR "${HLHDF_MKFFILE}" | sed -e"s/\(HDF5_LIBDIR=[ \t]
 # Get HLHDFs libpath from raves mkf file
 HLHDF_LDPATH=`fgrep HLHDF_LIB_DIR "${RAVE_ROOT_MKFILE}" | sed -e"s/\(HLHDF_LIB_DIR=[ \t]*\)//"`
 
-BNAME=`python -c 'from distutils import util; import sys; print "lib.%s-%s" % (util.get_platform(), sys.version[0:3])'`
+BNAME=`$PYTHON_BIN -c 'from distutils import util; import sys; print("lib.%s-%s" % (util.get_platform(), sys.version[0:3]))'`
 
 RBPATH="${SCRIPTPATH}/../pywrwp"
 RAVE_LDPATH="${RAVE_ROOT_DIR}/lib"
@@ -80,9 +86,9 @@ NARGS=$#
 PYSCRIPT=
 DIRNAME=
 if [ $NARGS -eq 1 ]; then
-  PYSCRIPT=`python -c "import os;print os.path.abspath(\"$1\")"`
+  PYSCRIPT=`$PYTHON_BIN -c "import os;print(os.path.abspath(\"$1\"))"`
 elif [ $NARGS -eq 2 ]; then
-  PYSCRIPT=`python -c "import os;print os.path.abspath(\"$1\")"`
+  PYSCRIPT=`$PYTHON_BIN -c "import os;print(os.path.abspath(\"$1\"))"`
   DIRNAME="$2"
 elif [ $NARGS -eq 0 ]; then
   # Do nothing
@@ -99,9 +105,9 @@ fi
 
 if [ "$PYSCRIPT" != "" ]; then
   #valgrind --leak-check=full --show-reachable=yes 
-  python "$PYSCRIPT"
+  $PYTHON_BIN "$PYSCRIPT"
 else
-  python
+  $PYTHON_BIN
 fi
 
 VAL=$?

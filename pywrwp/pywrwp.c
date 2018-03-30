@@ -21,6 +21,7 @@ along with baltrad-wrwp.  If not, see <http://www.gnu.org/licenses/>.
  * @author Anders Henja, SMHI
  * @date 2013-09-17
  */
+#include "pywrwp_compat.h"
 #include <Python.h>
 #include <math.h>
 #include <stdio.h>
@@ -190,65 +191,58 @@ static struct PyMethodDef _pywrwp_methods[] =
  * Returns the specified attribute in the wrwp generator
  * @param[in] self - the wrwp generator
  */
-static PyObject* _pywrwp_getattr(PyWrwp* self, char* name)
+static PyObject* _pywrwp_getattro(PyWrwp* self, PyObject* name)
 {
-  PyObject* res = NULL;
-  if (strcmp("dz", name) == 0) {
+  if (PY_COMPARE_STRING_WITH_ATTRO_NAME("dz", name) == 0) {
     return PyInt_FromLong(Wrwp_getDZ(self->wrwp));
-  } else if (strcmp("hmax", name) == 0) {
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("hmax", name) == 0) {
     return PyInt_FromLong(Wrwp_getHMAX(self->wrwp));
-  } else if (strcmp("dmin", name) == 0) {
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("dmin", name) == 0) {
     return PyInt_FromLong(Wrwp_getDMIN(self->wrwp));
-  } else if (strcmp("dmax", name) == 0) {
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("dmax", name) == 0) {
     return PyInt_FromLong(Wrwp_getDMAX(self->wrwp));
-  } else if (strcmp("emin", name) == 0) {
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("emin", name) == 0) {
     return PyFloat_FromDouble(Wrwp_getEMIN(self->wrwp));
-  } else if (strcmp("vmin", name) == 0) {
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("vmin", name) == 0) {
     return PyFloat_FromDouble(Wrwp_getVMIN(self->wrwp));
   }
-  res = Py_FindMethod(_pywrwp_methods, (PyObject*) self, name);
-  if (res)
-    return res;
-
-  PyErr_Clear();
-  PyErr_SetString(PyExc_AttributeError, name);
-  return NULL;
+  return PyObject_GenericGetAttr((PyObject*)self, name);
 }
 
 /**
  * Returns the specified attribute in the wrwp generator
  */
-static int _pywrwp_setattr(PyWrwp* self, char* name, PyObject* val)
+static int _pywrwp_setattro(PyWrwp* self, PyObject* name, PyObject* val)
 {
   int result = -1;
   if (name == NULL) {
     goto done;
   }
-  if (strcmp("dz", name) == 0) {
+  if (PY_COMPARE_STRING_WITH_ATTRO_NAME("dz", name) == 0) {
     if (PyInt_Check(val)) {
       Wrwp_setDZ(self->wrwp, PyInt_AsLong(val));
     } else {
       raiseException_gotoTag(done, PyExc_TypeError, "dz must be an integer");
     }
-  } else if (strcmp("hmax", name) == 0) {
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("hmax", name) == 0) {
     if (PyInt_Check(val)) {
       Wrwp_setHMAX(self->wrwp, PyInt_AsLong(val));
     } else {
       raiseException_gotoTag(done, PyExc_TypeError, "hmax must be an integer");
     }
-  } else if (strcmp("dmin", name) == 0) {
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("dmin", name) == 0) {
     if (PyInt_Check(val)) {
       Wrwp_setDMIN(self->wrwp, PyInt_AsLong(val));
     } else {
       raiseException_gotoTag(done, PyExc_TypeError, "dmin must be an integer");
     }
-  } else if (strcmp("dmax", name) == 0) {
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("dmax", name) == 0) {
     if (PyInt_Check(val)) {
       Wrwp_setDMAX(self->wrwp, PyInt_AsLong(val));
     } else {
       raiseException_gotoTag(done, PyExc_TypeError, "dmax must be an integer");
     }
-  } else if (strcmp("emin", name) == 0) {
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("emin", name) == 0) {
     if (PyFloat_Check(val)) {
       Wrwp_setEMIN(self->wrwp, PyFloat_AsDouble(val));
     } else if (PyInt_Check(val)) {
@@ -256,7 +250,7 @@ static int _pywrwp_setattr(PyWrwp* self, char* name, PyObject* val)
     } else {
       raiseException_gotoTag(done, PyExc_TypeError, "emin must be an integer or a float");
     }
-  } else if (strcmp("vmin", name) == 0) {
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("vmin", name) == 0) {
     if (PyFloat_Check(val)) {
       Wrwp_setVMIN(self->wrwp, PyFloat_AsDouble(val));
     } else if (PyInt_Check(val)) {
@@ -275,21 +269,47 @@ done:
 /*@{ Type definitions */
 PyTypeObject PyWrwp_Type =
 {
-  PyObject_HEAD_INIT(NULL)0, /*ob_size*/
+  PyVarObject_HEAD_INIT(NULL, 0) /*ob_size*/
   "WrwpCore", /*tp_name*/
   sizeof(PyWrwp), /*tp_size*/
   0, /*tp_itemsize*/
   /* methods */
   (destructor)_pywrwp_dealloc, /*tp_dealloc*/
   0, /*tp_print*/
-  (getattrfunc)_pywrwp_getattr, /*tp_getattr*/
-  (setattrfunc)_pywrwp_setattr, /*tp_setattr*/
-  0, /*tp_compare*/
-  0, /*tp_repr*/
-  0, /*tp_as_number */
+  (getattrfunc)0,               /*tp_getattr*/
+  (setattrfunc)0,               /*tp_setattr*/
+  0,                            /*tp_compare*/
+  0,                            /*tp_repr*/
+  0,                            /*tp_as_number */
   0,
-  0, /*tp_as_mapping */
-  0 /*tp_hash*/
+  0,                            /*tp_as_mapping */
+  0,                            /*tp_hash*/
+  (ternaryfunc)0,               /*tp_call*/
+  (reprfunc)0,                  /*tp_str*/
+  (getattrofunc)_pywrwp_getattro, /*tp_getattro*/
+  (setattrofunc)_pywrwp_setattro, /*tp_setattro*/
+  0,                            /*tp_as_buffer*/
+  Py_TPFLAGS_DEFAULT, /*tp_flags*/
+  0,                            /*tp_doc*/
+  (traverseproc)0,              /*tp_traverse*/
+  (inquiry)0,                   /*tp_clear*/
+  0,                            /*tp_richcompare*/
+  0,                            /*tp_weaklistoffset*/
+  0,                            /*tp_iter*/
+  0,                            /*tp_iternext*/
+  _pywrwp_methods,              /*tp_methods*/
+  0,                            /*tp_members*/
+  0,                            /*tp_getset*/
+  0,                            /*tp_base*/
+  0,                            /*tp_dict*/
+  0,                            /*tp_descr_get*/
+  0,                            /*tp_descr_set*/
+  0,                            /*tp_dictoffset*/
+  0,                            /*tp_init*/
+  0,                            /*tp_alloc*/
+  0,                            /*tp_new*/
+  0,                            /*tp_free*/
+  0,                            /*tp_is_gc*/
 };
 
 /*@} End of Type definitions */
@@ -303,37 +323,39 @@ static PyMethodDef functions[] = {
   {NULL,NULL} /*Sentinel*/
 };
 
-PyMODINIT_FUNC
-init_wrwp(void)
+MOD_INIT(_wrwp)
 {
   PyObject *module=NULL,*dictionary=NULL;
   static void *PyWrwp_API[PyWrwp_API_pointers];
   PyObject *c_api_object = NULL;
-  PyWrwp_Type.ob_type = &PyType_Type;
 
-  module = Py_InitModule("_wrwp", functions);
+  MOD_INIT_SETUP_TYPE(PyWrwp_Type, &PyType_Type);
+
+  MOD_INIT_VERIFY_TYPE_READY(&PyWrwp_Type);
+
+  MOD_INIT_DEF(module, "_wrwp", NULL/*doc*/, functions);
   if (module == NULL) {
-    return;
+    return MOD_INIT_ERROR;
   }
+
   PyWrwp_API[PyWrwp_Type_NUM] = (void*)&PyWrwp_Type;
   PyWrwp_API[PyWrwp_GetNative_NUM] = (void *)PyWrwp_GetNative;
   PyWrwp_API[PyWrwp_New_NUM] = (void*)PyWrwp_New;
 
-  c_api_object = PyCObject_FromVoidPtr((void *)PyWrwp_API, NULL);
-
-  if (c_api_object != NULL) {
-    PyModule_AddObject(module, "_C_API", c_api_object);
-  }
-
+  c_api_object = PyCapsule_New(PyWrwp_API, PyWrwp_CAPSULE_NAME, NULL);
   dictionary = PyModule_GetDict(module);
-  ErrorObject = PyString_FromString("_wrwp.error");
+  PyDict_SetItemString(dictionary, "_C_API", c_api_object);
+
+  ErrorObject = PyErr_NewException("_wrwp.error", NULL, NULL);
   if (ErrorObject == NULL || PyDict_SetItemString(dictionary, "error", ErrorObject) != 0) {
     Py_FatalError("Can't define _wrwp.error");
+    return MOD_INIT_ERROR;
   }
 
   import_array();
   import_pypolarvolume();
   import_pyverticalprofile();
   PYRAVE_DEBUG_INITIALIZE;
+  return MOD_INIT_SUCCESS(module);
 }
 /*@} End of Module setup */

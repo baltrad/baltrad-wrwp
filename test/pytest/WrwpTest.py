@@ -43,71 +43,71 @@ class WrwpTest(unittest.TestCase):
 
   def test_new(self):
     obj = _wrwp.new()
-    self.assertNotEqual(-1, string.find(`type(obj)`, "WrwpCore"))
+    self.assertNotEqual(-1, str(type(obj)).find("WrwpCore"))
 
   def test_dz(self):
     obj = _wrwp.new()
-    self.assertEquals(200, obj.dz)
+    self.assertEqual(200, obj.dz)
     obj.dz = 100
-    self.assertEquals(100, obj.dz)
+    self.assertEqual(100, obj.dz)
     try:
       obj.dz = 200.0
       self.fail("Expected TypeError")
-    except TypeError, e:
+    except TypeError:
       pass
-    self.assertEquals(100, obj.dz)
+    self.assertEqual(100, obj.dz)
 
   def test_hmax(self):
     obj = _wrwp.new()
-    self.assertEquals(12000, obj.hmax)
+    self.assertEqual(12000, obj.hmax)
     obj.hmax = 100
-    self.assertEquals(100, obj.hmax)
+    self.assertEqual(100, obj.hmax)
     try:
       obj.hmax = 200.0
       self.fail("Expected TypeError")
-    except TypeError, e:
+    except TypeError:
       pass
-    self.assertEquals(100, obj.hmax)
+    self.assertEqual(100, obj.hmax)
 
   def test_dmin(self):
     obj = _wrwp.new()
-    self.assertEquals(4000, obj.dmin)
+    self.assertEqual(4000, obj.dmin)
     obj.dmin = 100
-    self.assertEquals(100, obj.dmin)
+    self.assertEqual(100, obj.dmin)
     try:
       obj.dmin = 200.0
       self.fail("Expected TypeError")
-    except TypeError, e:
+    except TypeError:
       pass
-    self.assertEquals(100, obj.dmin)
+    self.assertEqual(100, obj.dmin)
     
   def test_dmax(self):
     obj = _wrwp.new()
-    self.assertEquals(40000, obj.dmax)
+    self.assertEqual(40000, obj.dmax)
     obj.dmax = 100
-    self.assertEquals(100, obj.dmax)
+    self.assertEqual(100, obj.dmax)
     try:
       obj.dmax = 200.0
       self.fail("Expected TypeError")
-    except TypeError, e:
+    except TypeError:
       pass
-    self.assertEquals(100, obj.dmax)
+    self.assertEqual(100, obj.dmax)
 
   def test_emin(self):
     obj = _wrwp.new()
-    self.assertAlmostEquals(2.5, obj.emin, 4)
+    self.assertAlmostEqual(2.5, obj.emin, 4)
     obj.emin = 3.5
-    self.assertAlmostEquals(3.5, obj.emin, 4)
+    self.assertAlmostEqual(3.5, obj.emin, 4)
     obj.emin = 4
-    self.assertAlmostEquals(4.0, obj.emin, 4)
+    self.assertAlmostEqual(4.0, obj.emin, 4)
 
   def test_vmin(self):
     obj = _wrwp.new()
-    self.assertAlmostEquals(2.0, obj.vmin, 4)
+    self.assertAlmostEqual(2.0, obj.vmin, 4)
     obj.vmin = 3.5
-    self.assertAlmostEquals(3.5, obj.vmin, 4)
+    self.assertAlmostEqual(3.5, obj.vmin, 4)
     obj.vmin = 4
-    self.assertAlmostEquals(4.0, obj.vmin, 4)
+    self.assertAlmostEqual(4.0, obj.vmin, 4)
   
   def test_generate(self):
     pvol = _raveio.open(self.FIXTURE).object
@@ -122,29 +122,29 @@ class WrwpTest(unittest.TestCase):
     hght = vp.getHGHT()
     nv = vp.getNV()
     
-    self.assertEquals(1, uwnd.xsize)
-    self.assertEquals(10, uwnd.ysize)
-    self.assertEquals("UWND", uwnd.getAttribute("what/quantity"))
+    self.assertEqual(1, uwnd.xsize)
+    self.assertEqual(10, uwnd.ysize)
+    self.assertEqual("UWND", uwnd.getAttribute("what/quantity"))
 
-    self.assertEquals(1, vwnd.xsize)
-    self.assertEquals(10, vwnd.ysize)
-    self.assertEquals("VWND", vwnd.getAttribute("what/quantity"))
+    self.assertEqual(1, vwnd.xsize)
+    self.assertEqual(10, vwnd.ysize)
+    self.assertEqual("VWND", vwnd.getAttribute("what/quantity"))
 
-    self.assertEquals(1, hght.xsize)
-    self.assertEquals(10, hght.ysize)
-    self.assertEquals("HGHT", hght.getAttribute("what/quantity"))
+    self.assertEqual(1, hght.xsize)
+    self.assertEqual(10, hght.ysize)
+    self.assertEqual("HGHT", hght.getAttribute("what/quantity"))
     
-    self.assertEquals(1, nv.xsize)
-    self.assertEquals(10, nv.ysize)
-    self.assertEquals("n", nv.getAttribute("what/quantity"))
+    self.assertEqual(1, nv.xsize)
+    self.assertEqual(10, nv.ysize)
+    self.assertEqual("n", nv.getAttribute("what/quantity"))
 
-    self.assertEquals(10,vp.getLevels())
-    self.assertEquals(200, vp.interval)
-    self.assertEquals(0, vp.minheight)
-    self.assertEquals(2000, vp.maxheight)
-    self.assertEquals(pvol.source, vp.source)
-    self.assertEquals(pvol.date, vp.date)
-    self.assertEquals(pvol.time, vp.time)
+    self.assertEqual(10,vp.getLevels())
+    self.assertEqual(200, vp.interval)
+    self.assertEqual(0, vp.minheight)
+    self.assertEqual(2000, vp.maxheight)
+    self.assertEqual(pvol.source, vp.source)
+    self.assertEqual(pvol.date, vp.date)
+    self.assertEqual(pvol.time, vp.time)
     
   def X_test_generate_2(self):
     pvol = _raveio.open(self.FIXTURE).object
@@ -171,50 +171,50 @@ class WrwpTest(unittest.TestCase):
     hght = vp.getHGHT()
     nv = vp.getNV()
 
-    self.assertEquals(1, uwnd.xsize)
-    self.assertEquals(10, uwnd.ysize)
-    self.assertEquals("UWND", uwnd.getAttribute("what/quantity"))
+    self.assertEqual(1, uwnd.xsize)
+    self.assertEqual(10, uwnd.ysize)
+    self.assertEqual("UWND", uwnd.getAttribute("what/quantity"))
 
-    self.assertEquals(1, vwnd.xsize)
-    self.assertEquals(10, vwnd.ysize)
-    self.assertEquals("VWND", vwnd.getAttribute("what/quantity"))
+    self.assertEqual(1, vwnd.xsize)
+    self.assertEqual(10, vwnd.ysize)
+    self.assertEqual("VWND", vwnd.getAttribute("what/quantity"))
 
-    self.assertEquals(1, hght.xsize)
-    self.assertEquals(10, hght.ysize)
-    self.assertEquals("HGHT", hght.getAttribute("what/quantity"))
+    self.assertEqual(1, hght.xsize)
+    self.assertEqual(10, hght.ysize)
+    self.assertEqual("HGHT", hght.getAttribute("what/quantity"))
 
-    self.assertEquals(1, nv.xsize)
-    self.assertEquals(10, nv.ysize)
-    self.assertEquals("n", nv.getAttribute("what/quantity"))
+    self.assertEqual(1, nv.xsize)
+    self.assertEqual(10, nv.ysize)
+    self.assertEqual("n", nv.getAttribute("what/quantity"))
 
-    self.assertEquals(10, vp.getLevels())
-    self.assertEquals(200, vp.interval)
-    self.assertEquals(0, vp.minheight)
-    self.assertEquals(2000, vp.maxheight)
-    self.assertEquals(pvol.source, vp.source)
-    self.assertEquals(pvol.date, vp.date)
-    self.assertEquals(pvol.time, vp.time)
+    self.assertEqual(10, vp.getLevels())
+    self.assertEqual(200, vp.interval)
+    self.assertEqual(0, vp.minheight)
+    self.assertEqual(2000, vp.maxheight)
+    self.assertEqual(pvol.source, vp.source)
+    self.assertEqual(pvol.date, vp.date)
+    self.assertEqual(pvol.time, vp.time)
     
-    self.assertEquals(900, vp.getAttribute("how/lowprf"))
-    self.assertEquals(1200, vp.getAttribute("how/highprf"))
+    self.assertEqual(900, vp.getAttribute("how/lowprf"))
+    self.assertEqual(1200, vp.getAttribute("how/highprf"))
     self.assertAlmostEqual(0.61, vp.getAttribute("how/pulsewidth"), 4)
     self.assertAlmostEqual(5.35, vp.getAttribute("how/wavelength"), 4)
     self.assertAlmostEqual(0.8, vp.getAttribute("how/RXbandwidth"), 4)
     self.assertAlmostEqual(3.1, vp.getAttribute("how/RXlossH"), 4)
     self.assertAlmostEqual(1.9, vp.getAttribute("how/TXlossH"), 4)
     self.assertAlmostEqual(44.9, vp.getAttribute("how/antgainH"), 4)
-    self.assertEquals("AVERAGE", vp.getAttribute("how/azmethod"))
-    self.assertEquals("AVERAGE", vp.getAttribute("how/binmethod"))
-    self.assertEquals("False", vp.getAttribute("how/malfunc"))
+    self.assertEqual("AVERAGE", vp.getAttribute("how/azmethod"))
+    self.assertEqual("AVERAGE", vp.getAttribute("how/binmethod"))
+    self.assertEqual("False", vp.getAttribute("how/malfunc"))
     self.assertAlmostEqual(277.4, vp.getAttribute("how/nomTXpower"), 4)
-    self.assertEquals("b94 3dd 000 000 000:", vp.getAttribute("how/radar_msg"), 4)
+    self.assertEqual("b94 3dd 000 000 000:", vp.getAttribute("how/radar_msg"), 4)
     self.assertAlmostEqual(73.101, vp.getAttribute("how/radconstH"), 4)
     self.assertAlmostEqual(0.2, vp.getAttribute("how/radomelossH"), 4)
     self.assertAlmostEqual(2.0, vp.getAttribute("how/rpm"), 4)
-    self.assertEquals("PARTEC2", vp.getAttribute("how/software"))
-    self.assertEquals("ERIC", vp.getAttribute("how/system"))
-    self.assertEquals(4.0, vp.getAttribute("how/minrange"))
-    self.assertEquals(40.0, vp.getAttribute("how/maxrange"))
+    self.assertEqual("PARTEC2", vp.getAttribute("how/software"))
+    self.assertEqual("ERIC", vp.getAttribute("how/system"))
+    self.assertEqual(4.0, vp.getAttribute("how/minrange"))
+    self.assertEqual(40.0, vp.getAttribute("how/maxrange"))
 
     robj = _raveio.new()
     robj.object = vp
@@ -237,49 +237,49 @@ class WrwpTest(unittest.TestCase):
       hght = vp.getHGHT()
       nv = vp.getNV()
 
-      self.assertEquals(1, uwnd.xsize)
-      self.assertEquals(60, uwnd.ysize)
-      self.assertEquals("UWND", uwnd.getAttribute("what/quantity"))
+      self.assertEqual(1, uwnd.xsize)
+      self.assertEqual(60, uwnd.ysize)
+      self.assertEqual("UWND", uwnd.getAttribute("what/quantity"))
 
-      self.assertEquals(1, vwnd.xsize)
-      self.assertEquals(60, vwnd.ysize)
-      self.assertEquals("VWND", vwnd.getAttribute("what/quantity"))
+      self.assertEqual(1, vwnd.xsize)
+      self.assertEqual(60, vwnd.ysize)
+      self.assertEqual("VWND", vwnd.getAttribute("what/quantity"))
 
-      self.assertEquals(1, hght.xsize)
-      self.assertEquals(60, hght.ysize)
-      self.assertEquals("HGHT", hght.getAttribute("what/quantity"))
+      self.assertEqual(1, hght.xsize)
+      self.assertEqual(60, hght.ysize)
+      self.assertEqual("HGHT", hght.getAttribute("what/quantity"))
 
-      self.assertEquals(1, nv.xsize)
-      self.assertEquals(60, nv.ysize)
-      self.assertEquals("n", nv.getAttribute("what/quantity"))
+      self.assertEqual(1, nv.xsize)
+      self.assertEqual(60, nv.ysize)
+      self.assertEqual("n", nv.getAttribute("what/quantity"))
 
-      self.assertEquals(60, vp.getLevels())
-      self.assertEquals(200, vp.interval)
-      self.assertEquals(0, vp.minheight)
-      self.assertEquals(12000, vp.maxheight)
-      self.assertEquals(pvol.source, vp.source)
-      self.assertEquals(pvol.date, vp.date)
-      self.assertEquals(pvol.time, vp.time)
+      self.assertEqual(60, vp.getLevels())
+      self.assertEqual(200, vp.interval)
+      self.assertEqual(0, vp.minheight)
+      self.assertEqual(12000, vp.maxheight)
+      self.assertEqual(pvol.source, vp.source)
+      self.assertEqual(pvol.date, vp.date)
+      self.assertEqual(pvol.time, vp.time)
     
-      self.assertEquals(450, vp.getAttribute("how/lowprf"))
-      self.assertEquals(600, vp.getAttribute("how/highprf"))
+      self.assertEqual(450, vp.getAttribute("how/lowprf"))
+      self.assertEqual(600, vp.getAttribute("how/highprf"))
       self.assertAlmostEqual(0.5, vp.getAttribute("how/pulsewidth"), 4)
       self.assertAlmostEqual(5.348660945892334, vp.getAttribute("how/wavelength"), 4)
       self.assertAlmostEqual(2.5, vp.getAttribute("how/RXbandwidth"), 4)
       self.assertAlmostEqual(1.600000023841858, vp.getAttribute("how/RXlossH"), 4)
       self.assertAlmostEqual(2.3000001907348633, vp.getAttribute("how/TXlossH"), 4)
       self.assertAlmostEqual(44.290000915527344, vp.getAttribute("how/antgainH"), 4)
-      self.assertEquals("AVERAGE", vp.getAttribute("how/azmethod"))
-      self.assertEquals("AVERAGE", vp.getAttribute("how/binmethod"))
-      self.assertEquals("False", vp.getAttribute("how/malfunc"))
+      self.assertEqual("AVERAGE", vp.getAttribute("how/azmethod"))
+      self.assertEqual("AVERAGE", vp.getAttribute("how/binmethod"))
+      self.assertEqual("False", vp.getAttribute("how/malfunc"))
       self.assertAlmostEqual(270.0, vp.getAttribute("how/nomTXpower"), 4)
-      self.assertEquals("", vp.getAttribute("how/radar_msg"), 4)
+      self.assertEqual("", vp.getAttribute("how/radar_msg"), 4)
       self.assertAlmostEqual(71.4227294921875, vp.getAttribute("how/radconstH"), 4)
       self.assertAlmostEqual(3.0, vp.getAttribute("how/rpm"), 4)
-      self.assertEquals("EDGE", vp.getAttribute("how/software"))
-      self.assertEquals("EECDWSR-2501C-SDP", vp.getAttribute("how/system"))
-      self.assertEquals(4.0, vp.getAttribute("how/minrange"))
-      self.assertEquals(40.0, vp.getAttribute("how/maxrange"))
+      self.assertEqual("EDGE", vp.getAttribute("how/software"))
+      self.assertEqual("EECDWSR-2501C-SDP", vp.getAttribute("how/system"))
+      self.assertEqual(4.0, vp.getAttribute("how/minrange"))
+      self.assertEqual(40.0, vp.getAttribute("how/maxrange"))
 
       robj = _raveio.new()
       robj.object = vp
@@ -287,7 +287,7 @@ class WrwpTest(unittest.TestCase):
     except:
       exceptionTest = True
 
-    self.assertEquals(True, exceptionTest)
+    self.assertEqual(True, exceptionTest)
 
 if __name__ == "__main__":
   unittest.main()

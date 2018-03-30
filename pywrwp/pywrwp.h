@@ -47,6 +47,8 @@ typedef struct {
 
 #define PyWrwp_API_pointers 3                 /**< total number of C API pointers */
 
+#define PyWrwp_CAPSULE_NAME "_wrwp._C_API"
+
 #ifdef PYWRWP_MODULE
 /** declared in pywrwp module */
 extern PyTypeObject PyWrwp_Type;
@@ -83,37 +85,18 @@ static void **PyWrwp_API;
  * Checks if the object is a python wrwp generator.
  */
 #define PyWrwp_Check(op) \
-   ((op)->ob_type == (PyTypeObject *)PyWrwp_API[PyWrwp_Type_NUM])
+    (Py_TYPE(op) == &PyWrwp_Type)
+
+
+#define PyWrwp_Type (*(PyTypeObject*)PyWrwp_API[PyWrwp_Type_NUM])
 
 /**
  * Imports the PyWrwp module (like import _wrwp in python).
  */
-static int
-import_pywrwp(void)
-{
-  PyObject *module;
-  PyObject *c_api_object;
-
-  module = PyImport_ImportModule("_wrwp");
-  if (module == NULL) {
-    return -1;
-  }
-
-  c_api_object = PyObject_GetAttrString(module, "_C_API");
-  if (c_api_object == NULL) {
-    Py_DECREF(module);
-    return -1;
-  }
-  if (PyCObject_Check(c_api_object)) {
-    PyWrwp_API = (void **)PyCObject_AsVoidPtr(c_api_object);
-  }
-  Py_DECREF(c_api_object);
-  Py_DECREF(module);
-  return 0;
-}
+#define import_pywrwp() \
+    PyWrwp_API = (void **)PyCapsule_Import(PyWrwp_CAPSULE_NAME, 1);
 
 #endif
-
 
 
 #endif /* PYWRWP_H */

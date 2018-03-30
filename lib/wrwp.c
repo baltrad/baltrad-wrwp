@@ -363,7 +363,7 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
   double gain, offset, nodata, undetect, val;
   double d, h;
   double alpha, beta, gamma, vvel, vdir, vstd, zsum, zmean, zstd;
-  double centerOfLayer, u_wnd_comp, v_wnd_comp, vdir_rad;
+  double centerOfLayer=0.0, u_wnd_comp=0.0, v_wnd_comp=0.0, vdir_rad=0.0;
   int ysize = 0, yindex = 0;
   int countAcceptedScans = 0; /* counter for accepted scans i.e. scans with elangle >= selected
                                  minimum elevatiuon angle and not being set as malfunc */
