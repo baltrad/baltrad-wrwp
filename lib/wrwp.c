@@ -602,9 +602,9 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
       /* wind direction */
       vdir = 0;
       if (alpha < 0) {
-        vdir = (PI/2-beta) * RAD2DEG;
+        vdir = (M_PI/2-beta) * RAD2DEG;
       } else if (alpha > 0) {
-        vdir = (3*PI/2-beta) * RAD2DEG;
+        vdir = (3*M_PI/2-beta) * RAD2DEG;
       }
       if (vdir < 0) {
         vdir = vdir + 360;
