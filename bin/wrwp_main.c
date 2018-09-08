@@ -18,6 +18,7 @@ along with baltrad-wrwp.  If not, see <http://www.gnu.org/licenses/>.
 #include "rave_debug.h"
 #include <getopt.h>
 #include <libgen.h>
+#include "rave_utilities.h"
 
 static void PrintUsage(char* name, int full)
 {
@@ -39,6 +40,8 @@ static void PrintUsage(char* name, int full)
     printf("--dmax=<value>     - Maximum distance for deriving a profile [m] (default: %d)\n", DMAX);
     printf("--emin=<value>     - Minimum elevation angle [deg] (default: %f)\n", EMIN);
     printf("--vmin=<value>     - Radial velocity threshold [m/s] (default: %f)\n", VMIN);
+    printf("--quantity=<value> - A comma separated list of quanities (default: ff,ff_dev,dd,dbzh,dbzh_dev,nz)\n");
+    printf("                     Currently supported quantities are: NV,HGHT,UWND,VWND,ff,ff_dev,dd,dbzh,dbzh_dev,nz\n");
     printf("\n");
     printf("<input volume.h>  must be a polar volume in ODIM H5 format\n");
     printf("<output verticalprofile.h5> will be a vertical profile in ODIM H5 format\n\n");
@@ -98,6 +101,59 @@ int ParseDouble(char* arg, double* pDouble)
   return 0;
 }
 
+/**
+ * Extracts the quantity list from a string. Verifies that it's a comma separated list
+ * @param[in] arg - the argument
+ * @param[in,out] quantities - the list of quantities
+ * @return 1 on success otherwise 0
+ */
+int ParseQuantities(char* arg, char** quantities)
+{
+  int result = 0;
+  RaveList_t* quantityList = NULL;
+  if (arg != NULL) {
+    quantityList = RaveUtilities_getTrimmedTokens(arg, ',');
+    if (quantityList == NULL || RaveList_size(quantityList) == 0) { /* When 0 length, we let wrwp:s default mechanism decide */
+      *quantities = NULL;
+    } else {
+      int i = 0, sz = 0;
+      sz = RaveList_size(quantityList);
+      for (i = 0; i < sz; i++) {
+        char* q = (char*)RaveList_get(quantityList, i);
+        if (q != NULL) {
+          if (strcmp(q, "NV") == 0 ||
+              strcmp(q, "HGHT") == 0 ||
+              strcmp(q, "UWND") == 0 ||
+              strcmp(q, "VWND") == 0 ||
+              strcmp(q, "ff") == 0 ||
+              strcmp(q, "ff_dev") == 0 ||
+              strcmp(q, "dd") == 0 ||
+              strcmp(q, "dbzh") == 0 ||
+              strcmp(q, "dbzh_dev") == 0 ||
+              strcmp(q, "nz") == 0) {
+            continue;
+          } else {
+            fprintf(stderr, "quantity = %s is not supported\n", q);
+            goto done;
+          }
+        }
+      }
+      *quantities = RAVE_STRDUP(arg);
+      if (*quantities == NULL) {
+        fprintf(stderr, "Failed to allocate memory for quantities\n");
+        goto done;
+      }
+    }
+  }
+  result = 1;
+done:
+  if (quantityList != NULL) {
+    RaveList_freeAndDestroy(&quantityList);
+  }
+  return result;
+}
+
+
 /** Main function for deriving weather radar wind and reflectivity profiles
  * @file
  * @author G�nther Haase, SMHI
@@ -125,6 +181,7 @@ int main (int argc,char *argv[]) {
 	int dmax = DMAX;
 	double emin = EMIN;
 	double vmin = VMIN;
+	char* quantities = NULL;
 
 	int getopt_ret, option_index;
 
@@ -142,6 +199,7 @@ int main (int argc,char *argv[]) {
       {"dmax", optional_argument, 0, 'D'},
       {"emin", optional_argument, 0, 'e'},
       {"vmin", optional_argument, 0, 'v'},
+      {"quantities", optional_argument, 0, 'q'},
 	    {0, 0, 0, 0}
 	};
 
@@ -237,6 +295,13 @@ int main (int argc,char *argv[]) {
           goto done;
         }
         break;
+      case 'q':
+        if (!ParseQuantities(optarg, &quantities)) {
+          fprintf(stderr, "--quantities=<value> must be a comma separated list of valid quantities.\n");
+          PrintUsage(argv[0], 0);
+          goto done;
+        }
+        break;
       case '?':
       default:
         fprintf(stderr, "Unknown argument\n");
@@ -291,7 +356,7 @@ int main (int argc,char *argv[]) {
 	}
 	RaveIO_close (raveio);
 
-	result = Wrwp_generate(wrwp, inobj, NULL);
+	result = Wrwp_generate(wrwp, inobj, quantities);
 	if (inobj == NULL) {
 		printf ("Could not derive wind profile %s, exiting ...\n", argv[1]);
 		goto done;
@@ -323,6 +388,7 @@ done:
 	RAVE_OBJECT_RELEASE(raveio);
 	RAVE_OBJECT_RELEASE(inobj);
 	RAVE_OBJECT_RELEASE(result);
+	RAVE_FREE(quantities);
 
 	return exitcode;
 }
