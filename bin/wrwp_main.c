@@ -40,7 +40,7 @@ static void PrintUsage(char* name, int full)
     printf("--dmax=<value>     - Maximum distance for deriving a profile [m] (default: %d)\n", DMAX);
     printf("--emin=<value>     - Minimum elevation angle [deg] (default: %f)\n", EMIN);
     printf("--vmin=<value>     - Radial velocity threshold [m/s] (default: %f)\n", VMIN);
-    printf("--quantity=<value> - A comma separated list of quanities (default: ff,ff_dev,dd,dbzh,dbzh_dev,nz)\n");
+    printf("--quantities=<value> A comma separated list of quanities (default: ff,ff_dev,dd,dbzh,dbzh_dev,nz)\n");
     printf("                     Currently supported quantities are: NV,HGHT,UWND,VWND,ff,ff_dev,dd,dbzh,dbzh_dev,nz\n");
     printf("\n");
     printf("<input volume.h>  must be a polar volume in ODIM H5 format\n");
@@ -381,6 +381,9 @@ int main (int argc,char *argv[]) {
     printf("DMAX       = %d\n", Wrwp_getDMAX(wrwp));
     printf("EMIN       = %lf\n", Wrwp_getEMIN(wrwp));
     printf("VMIN       = %lf\n", Wrwp_getVMIN(wrwp));
+    if (quantities != NULL) {
+      printf("QUANTITIES = %s\n", quantities);
+    }
   }
 
 	exitcode = 0;
