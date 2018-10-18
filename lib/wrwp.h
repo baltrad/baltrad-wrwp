@@ -56,7 +56,7 @@ along with baltrad-wrwp.  If not, see <http://www.gnu.org/licenses/>.
 
 #define DEG2RAD     DEG_TO_RAD      /* Degrees to radians. From PROJ.4 */
 #define RAD2DEG     RAD_TO_DEG      /* Radians to degrees. From PROJ.4 */
-#define NOR         20000           /* Number of rows in matrix A used in the computation */
+#define NOR         30000           /* Number of rows in matrix A used in the computation */
 #define NOC         3               /* Number of columns in matrix A used in the computation */
 #define NRHS        1               /* Number of right-hand sides; that is, the number of columns in matrix B used in the computation */
 #define LDA         NOC             /* Leading dimension of the array specified for a */
@@ -64,7 +64,8 @@ along with baltrad-wrwp.  If not, see <http://www.gnu.org/licenses/>.
 #define DMIN        4000            /* Minimum distance for deriving a profile [m] */
 #define DMAX        40000           /* Maximum distance for deriving a profile [m] */
 #define NMIN        36              /* Minimum sample size */
-#define EMIN        2.5             /* Minimum elevation angle [deg] */
+#define EMIN        0.5             /* Minimum elevation angle [deg] */
+//#define EMAX        45.0            /* Maximum elevation angle [deg] */
 #define VMIN        2.0             /* Radial velocity threshold [m/s] */
 #define DZ          200             /* Height interval for deriving a profile [m] */
 #define HMAX        12000           /* Maximum height of the profile [m] */
@@ -208,6 +209,20 @@ void Wrwp_setEMIN(Wrwp_t* self, double emin);
  * @return Minimum elevation angle [deg] (default EMIN)
  */
 double Wrwp_getEMIN(Wrwp_t* self);
+
+/**
+ * Sets maximum elevation angle [deg]
+ * @param[in] self - self
+ * @param[in] emax - maximum elevation angle [deg]
+ */
+//void Wrwp_setEMAX(Wrwp_t* self, double emax);
+
+/**
+ * Returns maximum elevation angle [deg]
+ * @param[in] self - self
+ * @return Maximum elevation angle [deg] (default EMAX)
+ */
+//double Wrwp_getEMAX(Wrwp_t* self);
 
 /**
  * Sets radial velocity threshold [m/s]

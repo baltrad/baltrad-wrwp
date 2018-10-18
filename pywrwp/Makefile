@@ -60,10 +60,10 @@ $(TARGET): $(DEPDIR) $(OBJECTS) ../lib/libwrwp.so
 
 .PHONY=install
 install:
-	@mkdir -p "${prefix}/share/wrwp/pywrwp"
-	@cp -v -f $(TARGET) "${prefix}/share/wrwp/pywrwp/"
-	@cp -v -f *.py "${prefix}/share/wrwp/pywrwp/"
-	@-echo "$(prefix)/share/wrwp/pywrwp" > "$(SITEPACK_PYTHON)/pywrwp.pth"
+	@mkdir -p "${DESTDIR}${prefix}/share/wrwp/pywrwp"
+	@cp -v -f $(TARGET) "${DESTDIR}${prefix}/share/wrwp/pywrwp/"
+	@cp -v -f *.py "${DESTDIR}${prefix}/share/wrwp/pywrwp/"
+	@-echo "$(prefix)/share/wrwp/pywrwp" > "${DESTDIR}$(SITEPACK_PYTHON)/pywrwp.pth"
 
 
 .PHONY=clean

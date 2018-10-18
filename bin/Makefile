@@ -64,7 +64,7 @@ $(TARGET): $(DEPDIR) $(OBJECTS)
 
 .PHONY=install
 install:
-	@"$(HLHDF_INSTALL_BIN)" -f -o -C $(TARGET) "$(prefix)/bin/$(TARGET)"
+	@"$(HLHDF_INSTALL_BIN)" -f -o -C $(TARGET) "${DESTDIR}$(prefix)/bin/$(TARGET)"
 
 .PHONY=clean
 clean:

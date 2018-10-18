@@ -458,7 +458,7 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
        become the HGHT array */
     centerOfLayer = iz + (self->dz / 2.0);
     firstInit = 0;
-
+    fprintf(stderr, "0\n");
     // loop over scans
     for (is = 0; is < nscans; is++) {
       char* malfuncString = NULL;
@@ -470,6 +470,7 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
       
       if (elangleForThisScan * RAD2DEG >= self->emin) { /* We only do the calculation for scans with elangle >= the minimum one */
         RaveDateTime_t* startDTofThisScan = WrwpInternal_getStartDateTimeFromScan(scan);
+	fprintf(stderr, "1: REFCNT = %d\n", RAVE_OBJECT_REFCNT(startDTofThisScan));
         RaveDateTime_t* endDTofThisScan = WrwpInternal_getEndDateTimeFromScan(scan);        
         RaveAttribute_t* malfuncattr = PolarScan_getAttribute(scan, "how/malfunc");
         if (malfuncattr != NULL) {
@@ -483,12 +484,16 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
             firstStartDT = RAVE_OBJECT_COPY(startDTofThisScan);
             lastEndDT = RAVE_OBJECT_COPY(endDTofThisScan);
             firstInit = 1;
+	    fprintf(stderr, "2: REFCNT = %d\n", RAVE_OBJECT_REFCNT(startDTofThisScan));
+	    fprintf(stderr, "3: REFCNT = %d\n", RAVE_OBJECT_REFCNT(firstStartDT));
           }
           if (firstInit == 1 && countAcceptedScans > 1 && iz==0) {
             if (RaveDateTime_compare(startDTofThisScan, firstStartDT) < 0) {
               /* if start datetime of this scan is before the first saved start datetime, save this one instead */
               RAVE_OBJECT_RELEASE(firstStartDT);
               firstStartDT = RAVE_OBJECT_COPY(startDTofThisScan);
+  	      fprintf(stderr, "4: REFCNT = %d\n", RAVE_OBJECT_REFCNT(startDTofThisScan));
+	      fprintf(stderr, "5: REFCNT = %d\n", RAVE_OBJECT_REFCNT(firstStartDT));
             }
             if (RaveDateTime_compare(endDTofThisScan, lastEndDT) > 0) {
               /* If end datetime of this scan is after the last saved end datetime, save this one instead */
@@ -520,6 +525,8 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
                     (val != nodata) &&
                     (val != undetect) &&
                     (abs(offset + gain * val) >= self->vmin)) {
+                  fprintf(stderr, "NV=%d, NOR=%d\n",nv, NOR);
+                  if (nv > NOR*NOC-2) fprintf(stderr, "WARNING WARNING, nv=%d\n", nv);
                   *(v+nv) = offset+gain*val;
                   *(az+nv) = 360./nrays*ir*DEG2RAD;
                   *(A+nv*NOC) = sin(*(az+nv));
@@ -560,12 +567,17 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
             RAVE_OBJECT_RELEASE(dbz);         
           }        
         }
+        fprintf(stderr, "6: REFCNT = %d\n", RAVE_OBJECT_REFCNT(startDTofThisScan));
+
         RAVE_OBJECT_RELEASE(startDTofThisScan);
+	fprintf(stderr, "6.01\n");
         RAVE_OBJECT_RELEASE(endDTofThisScan);
+	fprintf(stderr, "6.02\n");
       }
       RAVE_OBJECT_RELEASE(scan); 
+      fprintf(stderr, "6.03\n");
     }
-
+    fprintf(stderr, "6.1\n");
     if (countAcceptedScans == 0) { /* Emergency exit if no accepted scans were found */
       result = NULL;               /* If this is the case, we don't bother with checking */
       RAVE_FREE(A);                /* the same thing for the other atmospheric layers, */
@@ -763,6 +775,8 @@ done:
   RAVE_OBJECT_RELEASE(hght_field);
   RAVE_OBJECT_RELEASE(uwnd_field);
   RAVE_OBJECT_RELEASE(vwnd_field);
+  fprintf(stderr, "RELEASING FIRST START DT\n");
+  fprintf(stderr, "7: REFCNT = %d\n", RAVE_OBJECT_REFCNT(firstStartDT));
   RAVE_OBJECT_RELEASE(firstStartDT);
   RAVE_OBJECT_RELEASE(lastEndDT);
   RaveList_freeAndDestroy(&wantedFields);
