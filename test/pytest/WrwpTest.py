@@ -29,11 +29,84 @@ import string
 import _wrwp
 import _helpers
 import _raveio, _rave
+import xml.etree.cElementTree as ET
+import sys
+import os
+
+sys.path.append(os.path.realpath(__file__))
+
+def strToNumber(strval):
+  # Converts a string into a number, either int or float
+  # strval: the string to translate
+  # return:the translated value
+  # throws ValueError if value not could be translated
+  if type(strval) is not str: # Avoid doing anything if it is not a string as input
+    return strval
+  else:
+    try:
+      return int(strval)
+    except ValueError:
+      return float(strval)
+
+# Parse the xml-file to get the default values, the file is placed in the directory below i.e. fixtures
+root = ET.parse('./fixtures/wrwp_config.xml').getroot()
+for param in root.findall('param'):
+  if param.get('name') == 'DMIN':
+    DMIN = strToNumber(param.find('value').text)
+  if param.get('name') == 'DMAX':
+    DMAX = strToNumber(param.find('value').text)
+  if param.get('name') == 'NMIN_WND':
+    NMIN_WND = strToNumber(param.find('value').text)
+  if param.get('name') == 'NMIN_REF':
+    NMIN_REF = strToNumber(param.find('value').text)
+  if param.get('name') == 'EMIN':
+    EMIN = strToNumber(param.find('value').text)
+  if param.get('name') == 'EMAX':
+    EMAX = strToNumber(param.find('value').text)
+  if param.get('name') == 'VMIN':
+    VMIN = strToNumber(param.find('value').text)
+  if param.get('name') == 'FF_MAX':
+    FF_MAX = strToNumber(param.find('value').text)
+  if param.get('name') == 'DZ':
+    DZ = strToNumber(param.find('value').text)
+  if param.get('name') == 'HMAX':
+    HMAX = strToNumber(param.find('value').text)
+  if param.get('name') == 'NODATA_VP':
+    NODATA_VP = strToNumber(param.find('value').text)
+  if param.get('name') == 'UNDETECT_VP':
+    UNDETECT_VP = strToNumber(param.find('value').text)
+  if param.get('name') == 'GAIN_VP':
+    GAIN_VP = strToNumber(param.find('value').text)
+  if param.get('name') == 'OFFSET_VP':
+    OFFSET_VP = strToNumber(param.find('value').text)
+  if param.get('name') == 'QUANTITIES':
+    QUANTITIES = param.find('value').text
+
+
+def load_wrwp_defaults_to_obj():
+  wrwp = _wrwp.new()
+  wrwp.hmax = HMAX
+  wrwp.dz = DZ
+  wrwp.emin = EMIN
+  wrwp.dmin = DMIN
+  wrwp.dmax = DMAX
+  wrwp.nmin_wnd = NMIN_WND
+  wrwp.nmin_ref = NMIN_REF
+  wrwp.emax = EMAX
+  wrwp.vmin = VMIN
+  wrwp.ff_max = FF_MAX
+  wrwp.nodata_VP = NODATA_VP
+  wrwp.undetect_VP = UNDETECT_VP
+  wrwp.gain_VP = GAIN_VP
+  wrwp.offset_VP = OFFSET_VP
+
+  return wrwp
 
 class WrwpTest(unittest.TestCase):
   FIXTURE = "fixtures/pvol_seang_20090501T120000Z.h5"
   FIXTURE2 = "fixtures/selul_pvol_20151114T1615Z.h5"
   FIXTURE3 = "fixtures/seang_zdr_qcvol_one_scan_and_elangle_lower_than_wrwp_threshold.h5"
+  FIXTURE4 = "fixtures/seosd_qcvol_zdrvol_different_task.h5"
   
   def setUp(self):
     _helpers.triggerMemoryStatus()
@@ -46,7 +119,7 @@ class WrwpTest(unittest.TestCase):
     self.assertNotEqual(-1, str(type(obj)).find("WrwpCore"))
 
   def test_dz(self):
-    obj = _wrwp.new()
+    obj = load_wrwp_defaults_to_obj()
     self.assertEqual(200, obj.dz)
     obj.dz = 100
     self.assertEqual(100, obj.dz)
@@ -58,7 +131,7 @@ class WrwpTest(unittest.TestCase):
     self.assertEqual(100, obj.dz)
 
   def test_hmax(self):
-    obj = _wrwp.new()
+    obj = load_wrwp_defaults_to_obj()
     self.assertEqual(12000, obj.hmax)
     obj.hmax = 100
     self.assertEqual(100, obj.hmax)
@@ -70,8 +143,8 @@ class WrwpTest(unittest.TestCase):
     self.assertEqual(100, obj.hmax)
 
   def test_dmin(self):
-    obj = _wrwp.new()
-    self.assertEqual(4000, obj.dmin)
+    obj = load_wrwp_defaults_to_obj()
+    self.assertEqual(5000, obj.dmin)
     obj.dmin = 100
     self.assertEqual(100, obj.dmin)
     try:
@@ -82,8 +155,8 @@ class WrwpTest(unittest.TestCase):
     self.assertEqual(100, obj.dmin)
     
   def test_dmax(self):
-    obj = _wrwp.new()
-    self.assertEqual(40000, obj.dmax)
+    obj = load_wrwp_defaults_to_obj()
+    self.assertEqual(25000, obj.dmax)
     obj.dmax = 100
     self.assertEqual(100, obj.dmax)
     try:
@@ -94,28 +167,62 @@ class WrwpTest(unittest.TestCase):
     self.assertEqual(100, obj.dmax)
 
   def test_emin(self):
-    obj = _wrwp.new()
-    self.assertAlmostEqual(2.5, obj.emin, 4)
+    obj = load_wrwp_defaults_to_obj()
+    self.assertAlmostEqual(0.5, obj.emin, 4)
     obj.emin = 3.5
     self.assertAlmostEqual(3.5, obj.emin, 4)
     obj.emin = 4
     self.assertAlmostEqual(4.0, obj.emin, 4)
 
+  def test_emax(self):
+    obj = load_wrwp_defaults_to_obj()
+    self.assertAlmostEqual(45.0, obj.emax, 4)
+    obj.emax = 35.0
+    self.assertAlmostEqual(35.0, obj.emax, 4)
+    obj.emax = 4
+    self.assertAlmostEqual(4.0, obj.emax, 4)
+
   def test_vmin(self):
-    obj = _wrwp.new()
+    obj = load_wrwp_defaults_to_obj()
     self.assertAlmostEqual(2.0, obj.vmin, 4)
     obj.vmin = 3.5
     self.assertAlmostEqual(3.5, obj.vmin, 4)
     obj.vmin = 4
     self.assertAlmostEqual(4.0, obj.vmin, 4)
-  
+
+  def test_ff_max(self):
+    obj = load_wrwp_defaults_to_obj()
+    self.assertAlmostEqual(60.0, obj.ff_max, 4)
+    obj.ff_max = 3.5
+    self.assertAlmostEqual(3.5, obj.ff_max, 4)
+    obj.ff_max = 90.0
+    self.assertAlmostEqual(90.0, obj.ff_max, 4)
+
+  def test_nmin_wnd(self):
+    obj = load_wrwp_defaults_to_obj()
+    self.assertEqual(40, obj.nmin_wnd, 4)
+    obj.nmin_wnd = 70
+    self.assertEqual(70, obj.nmin_wnd, 4)
+    obj.nmin_wnd = 20
+    self.assertEqual(20, obj.nmin_wnd, 4)
+
+  def test_nmin_ref(self):
+    obj = load_wrwp_defaults_to_obj()
+    self.assertEqual(40, obj.nmin_ref, 4)
+    obj.nmin_ref = 70
+    self.assertEqual(70, obj.nmin_ref, 4)
+    obj.nmin_ref = 20
+    self.assertEqual(20, obj.nmin_ref, 4)
+
   def test_generate(self):
     pvol = _raveio.open(self.FIXTURE).object
-    generator = _wrwp.new()
-    generator.hmax = 2000
-    generator.dz = 200
+    wrwp = load_wrwp_defaults_to_obj()
+    wrwp.hmax = 2000
+    wrwp.dz = 200
+    fields = None
     
-    vp = generator.generate(pvol, "UWND,VWND,HGHT,NV")
+    fields = QUANTITIES
+    vp = wrwp.generate(pvol, fields)
     
     uwnd = vp.getUWND()
     vwnd = vp.getVWND()
@@ -145,26 +252,83 @@ class WrwpTest(unittest.TestCase):
     self.assertEqual(pvol.source, vp.source)
     self.assertEqual(pvol.date, vp.date)
     self.assertEqual(pvol.time, vp.time)
+
+  def test_generate_from_default(self):
+    pvol = _raveio.open(self.FIXTURE).object
+    wrwp = load_wrwp_defaults_to_obj()
+    fields = None
+
+    exceptionTest = False
+
+    vp = wrwp.generate(pvol, fields)
+
+    ff = vp.getFF()
+    dd = vp.getDD()
+    dbzh = vp.getDBZ()
+    dbzh_dev = vp.getDBZDev()
+    NZ = vp.getNZ()
+    uwnd = vp.getUWND()
+
+    self.assertEqual(1, ff.xsize)
+    self.assertEqual(60, ff.ysize)
+    self.assertEqual("ff", ff.getAttribute("what/quantity"))
+
+    self.assertEqual(1, dd.xsize)
+    self.assertEqual(60, dd.ysize)
+    self.assertEqual("dd", dd.getAttribute("what/quantity"))
+
+    self.assertEqual(1, dbzh.xsize)
+    self.assertEqual(60, dbzh.ysize)
+    self.assertEqual("DBZH", dbzh.getAttribute("what/quantity"))
+
+    self.assertEqual(1, dbzh_dev.xsize)
+    self.assertEqual(60, dbzh_dev.ysize)
+    self.assertEqual("DBZH_dev", dbzh_dev.getAttribute("what/quantity"))
+
+    self.assertEqual(1, NZ.xsize)
+    self.assertEqual(60, NZ.ysize)
+    self.assertEqual("nz", NZ.getAttribute("what/quantity"))
+
+    self.assertEqual(60,vp.getLevels())
+    self.assertEqual(200, vp.interval)
+    self.assertEqual(0, vp.minheight)
+    self.assertEqual(12000, vp.maxheight)
+    self.assertEqual(pvol.source, vp.source)
+    self.assertEqual(pvol.date, vp.date)
+    self.assertEqual(pvol.time, vp.time)
+
+    try:
+      self.assertEqual(1, uwnd.xsize)
+      self.assertEqual(60, uwnd.ysize)
+      self.assertEqual("UWND", uwnd.getAttribute("what/quantity"))
+    except:
+      exceptionTest = True
+
+    self.assertEqual(True, exceptionTest)
+
     
   def X_test_generate_2(self):
     pvol = _raveio.open(self.FIXTURE).object
-    generator = _wrwp.new()
-    generator.hmax = 2000
-    generator.dz = 200
+    wrwp = load_wrwp_defaults_to_obj()
+    wrwp.hmax = 2000
+    wrwp.dz = 200
+    fields = None
     
-    vp = generator.generate(pvol)
+    vp = wrwp.generate(pvol, fields)
 
     robj = _raveio.new()
     robj.object = vp
-    robj.save("slask.h5")
+    robj.save("slasktest.h5")
 
   def test_generate_with_several_howattributes(self):
     pvol = _raveio.open(self.FIXTURE2).object
-    generator = _wrwp.new()
-    generator.hmax = 2000
-    generator.dz = 200
+    wrwp = load_wrwp_defaults_to_obj()
+    wrwp.hmax = 2000
+    wrwp.dz = 200
+    fields = None
     
-    vp = generator.generate(pvol, "UWND,VWND,HGHT,NV")
+    fields = QUANTITIES
+    vp = wrwp.generate(pvol, fields)
     
     uwnd = vp.getUWND()
     vwnd = vp.getVWND()
@@ -195,7 +359,7 @@ class WrwpTest(unittest.TestCase):
     self.assertEqual(pvol.date, vp.date)
     self.assertEqual(pvol.time, vp.time)
     
-    self.assertEqual(900, vp.getAttribute("how/lowprf"))
+    '''self.assertEqual(900, vp.getAttribute("how/lowprf"))
     self.assertEqual(1200, vp.getAttribute("how/highprf"))
     self.assertAlmostEqual(0.61, vp.getAttribute("how/pulsewidth"), 4)
     self.assertAlmostEqual(5.35, vp.getAttribute("how/wavelength"), 4)
@@ -212,9 +376,9 @@ class WrwpTest(unittest.TestCase):
     self.assertAlmostEqual(0.2, vp.getAttribute("how/radomelossH"), 4)
     self.assertAlmostEqual(2.0, vp.getAttribute("how/rpm"), 4)
     self.assertEqual("PARTEC2", vp.getAttribute("how/software"))
-    self.assertEqual("ERIC", vp.getAttribute("how/system"))
-    self.assertEqual(4.0, vp.getAttribute("how/minrange"))
-    self.assertEqual(40.0, vp.getAttribute("how/maxrange"))
+    self.assertEqual("ERIC", vp.getAttribute("how/system"))'''
+    self.assertEqual(5.0, vp.getAttribute("how/minrange"))
+    self.assertEqual(25.0, vp.getAttribute("how/maxrange"))
 
     robj = _raveio.new()
     robj.object = vp
@@ -222,15 +386,15 @@ class WrwpTest(unittest.TestCase):
 
   def test_second_generate_with_several_howattributes(self):
     pvol = _raveio.open(self.FIXTURE3).object
-    generator = _wrwp.new()
-    generator.hmax = 12000
-    generator.dz = 200
-    generator.emin = 4.0
+    wrwp = load_wrwp_defaults_to_obj()
+    wrwp.emin = 4.0
+    fields = None
 
     exceptionTest = False
 
     try:
-      vp = generator.generate(pvol, "UWND,VWND,HGHT,NV")
+      fields = QUANTITIES
+      vp = wrwp.generate(pvol, fields)
 
       uwnd = vp.getUWND()
       vwnd = vp.getVWND()
@@ -261,7 +425,7 @@ class WrwpTest(unittest.TestCase):
       self.assertEqual(pvol.date, vp.date)
       self.assertEqual(pvol.time, vp.time)
     
-      self.assertEqual(450, vp.getAttribute("how/lowprf"))
+      '''self.assertEqual(450, vp.getAttribute("how/lowprf"))
       self.assertEqual(600, vp.getAttribute("how/highprf"))
       self.assertAlmostEqual(0.5, vp.getAttribute("how/pulsewidth"), 4)
       self.assertAlmostEqual(5.348660945892334, vp.getAttribute("how/wavelength"), 4)
@@ -277,9 +441,9 @@ class WrwpTest(unittest.TestCase):
       self.assertAlmostEqual(71.4227294921875, vp.getAttribute("how/radconstH"), 4)
       self.assertAlmostEqual(3.0, vp.getAttribute("how/rpm"), 4)
       self.assertEqual("EDGE", vp.getAttribute("how/software"))
-      self.assertEqual("EECDWSR-2501C-SDP", vp.getAttribute("how/system"))
-      self.assertEqual(4.0, vp.getAttribute("how/minrange"))
-      self.assertEqual(40.0, vp.getAttribute("how/maxrange"))
+      self.assertEqual("EECDWSR-2501C-SDP", vp.getAttribute("how/system"))'''
+      self.assertEqual(5.0, vp.getAttribute("how/minrange"))
+      self.assertEqual(25.0, vp.getAttribute("how/maxrange"))
 
       robj = _raveio.new()
       robj.object = vp
@@ -288,6 +452,61 @@ class WrwpTest(unittest.TestCase):
       exceptionTest = True
 
     self.assertEqual(True, exceptionTest)
+
+  def test_third_generate_with_several_howattributes(self):
+    pvol = _raveio.open(self.FIXTURE4).object
+    wrwp = load_wrwp_defaults_to_obj()
+    wrwp.emin = 4.0
+    fields = None
+
+    exceptionTest = False
+
+    try:
+      fields = QUANTITIES
+      vp = wrwp.generate(pvol, fields)
+
+      uwnd = vp.getUWND()
+      vwnd = vp.getVWND()
+      hght = vp.getHGHT()
+      nv = vp.getNV()
+
+      self.assertEqual(1, uwnd.xsize)
+      self.assertEqual(60, uwnd.ysize)
+      self.assertEqual("UWND", uwnd.getAttribute("what/quantity"))
+
+      self.assertEqual(1, vwnd.xsize)
+      self.assertEqual(60, vwnd.ysize)
+      self.assertEqual("VWND", vwnd.getAttribute("what/quantity"))
+
+      self.assertEqual(1, hght.xsize)
+      self.assertEqual(60, hght.ysize)
+      self.assertEqual("HGHT", hght.getAttribute("what/quantity"))
+
+      self.assertEqual(1, nv.xsize)
+      self.assertEqual(60, nv.ysize)
+      self.assertEqual("n", nv.getAttribute("what/quantity"))
+
+      self.assertEqual(60, vp.getLevels())
+      self.assertEqual(200, vp.interval)
+      self.assertEqual(0, vp.minheight)
+      self.assertEqual(12000, vp.maxheight)
+      self.assertEqual(pvol.source, vp.source)
+      self.assertEqual(pvol.date, vp.date)
+      self.assertEqual(pvol.time, vp.time)
+
+      self.assertEqual(5.0, vp.getAttribute("how/minrange"))
+      self.assertEqual(25.0, vp.getAttribute("how/maxrange"))
+      self.assertEqual("4.0,8.0,14.0,24.0,40.0", vp.getAttribute("how/angles"))
+      self.assertEqual("osd_zdr,osd_zdr_fastshort,osd_ldr_fastshort,osd_zdr_longshort", vp.getAttribute("how/task"))
+
+      robj = _raveio.new()
+      robj.object = vp
+      robj.save("slask3.h5")
+    except:
+      exceptionTest = True
+
+    self.assertEqual(False, exceptionTest)
+
 
 if __name__ == "__main__":
   unittest.main()

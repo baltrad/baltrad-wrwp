@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+<wrwp-params>
+    <param name="QUANTITIES">
+        <description>"Currently supported fields"</description>
+        <value>NV,HGHT,UWND,VWND,ff,ff_dev,dd,DBZH,DBZH_dev,NZ</value>
+    </param>
+    <param name="DMIN">
+        <description>Min distance for deriving a profile [m]</description>
+        <value>5000</value>
+    </param>
+    <param name="DMAX">
+        <description>Max distance for deriving a profile [m]</description>
+        <value>25000</value>
+    </param>
+    <param name="NMIN_WND">
+        <description>Minimum sample size for wind</description>
+        <value>40</value>
+    </param>
+    <param name="NMIN_REF">
+        <description>Minimum sample size for wind</description>
+        <value>40</value>
+    </param>
+    <param name="EMIN">
+        <description>Minimum elevation angle [deg]</description>
+        <value>0.5</value>
+    </param>
+    <param name="EMAX">
+        <description>Minimum elevation angle [deg]</description>
+        <value>45.0</value>
+    </param>
+    <param name="VMIN">
+        <description>Radial velocity threshold [m/s]</description>
+        <value>2.0</value>
+    </param>
+    <param name="FF_MAX">
+        <description>Maximum allowed layer velocity [m/s][</description>
+        <value>60.0</value>
+    </param>
+    <param name="DZ">
+        <description>Height interval for deriving a profile [m]</description>
+        <value>200</value>
+    </param>
+    <param name="HMAX">
+        <description>Maximum height of the profile [m]</description>
+        <value>12000</value>
+    </param>
+    <param name="NODATA_VP">
+        <description>Nodata value for profile</description>
+        <value>-9999</value>
+    </param>
+    <param name="UNDETECT_VP">
+        <description>Undetect value for profile</description>
+        <value>-9999</value>
+    </param>
+    <param name="GAIN_VP">
+        <description>Gain value for profile</description>
+        <value>1.0</value>
+    </param>
+    <param name="OFFSET_VP">
+        <description>Offset value for profile</description>
+        <value>0.0</value>
+    </param>
+</wrwp-params>

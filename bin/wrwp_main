@@ -1,0 +1,381 @@
+#!/usr/bin/env python3
+'''
+Copyright (C) 2012- Swedish Meteorological and Hydrological Institute (SMHI)
+
+This file is part of RAVE.
+
+RAVE is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+RAVE is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+See the GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with RAVE.  If not, see <http://www.gnu.org/licenses/>.'''
+
+#Makes weather radar vertical profiles directly from polar volumes. Input volumes
+#can be either ver2.1 or ver2.2. In the case with input volumes of ver2.1 the
+#produced vertical profiles will be ver2.1. In the case of input volumes of
+#ver2.2 the output vertical profiles can be either v2.1 or v2.2.
+#
+#Adjustable parameters is placed in the file wrwp_config.xml which is placed under .../baltrad-wrwp/bin/ as default. 
+#The necessary parameters in the wrwp_config.xml can of course also be adjusted from the command-line when executing
+#the code.
+ 
+## @file
+## @author Ulf E. Nordh, SMHI
+## @date 2019-11-05
+
+import _wrwp
+import _rave
+import _raveio
+import _polarvolume
+import string
+import rave_tempfile
+import odim_source
+import math
+import xml.etree.cElementTree as ET    
+from rave_defines import CENTER_ID, GAIN, OFFSET, H5RAD_VERSIONS
+import os
+import time
+import _pyhl
+import VPodimVersionConverter
+import sys
+import fnmatch
+from optparse import OptionParser
+import logging, logging.handlers
+
+# The default profile output directory if nothing else is selected
+DEFAULTOUT = os.path.dirname(os.path.realpath(__file__)) + '/'
+
+def find(pattern, path):
+  # Locates a file (pattern) in a directory tree (path)
+  result = []
+  for root, dirs, files in os.walk(path):
+    for name in files:
+      if fnmatch.fnmatch(name, pattern):
+        result.append(os.path.join(root, name))
+  return result
+
+def strToNumber(strval):
+  # Converts a string into a number, either int or float
+  # strval: the string to translate
+  # return:the translated value
+  # throws ValueError if value not could be translated
+  if type(strval) is not str: # Avoid doing anything if it is not a string as input
+    return strval
+  else:
+    try:
+      return int(strval)
+    except ValueError:
+      return float(strval)
+
+def write_file(out_file, dst,exestart):
+
+  # Writing of the generated converted file + check if the writing succeded or failed    
+  dst.write(out_file, 6)
+  exetime2 = time.time() - exestart
+  if os.path.isfile(out_file):
+    logger.debug("Succeded in writing ver2.1 vertical profile to disk: " + out_file)
+    logger.debug("Total generation time for ver 2.1 vertical profile: %f s"%exetime2)
+    logger.info("Finished generating ver 2.1 vertical profile, file: %s\n"%out_file)
+  else:
+    logger.info("Failed to write ver2.1 vertical profile to disk: \n" + out_file)
+  return
+
+def change2Odim21(filename, quantities, options, exestart):
+
+  #Initiate the converter
+  converter = VPodimVersionConverter.VPodimVersionConverter(filename, quantities)
+  
+  if converter.isSupported():
+    src, prods = converter.convert(quantities, filename)
+    for dst,out_file in prods:
+      write_file(out_file, dst, exestart)
+  return
+
+def main(options):
+  
+  ## Creates a vertical profile
+
+  files = options.infiles.split(",")
+
+  if options.outfname != None and len(files) > 1:
+    raise AttributeError("Several infiles given, but only one outfile. Run again with only one infile and one outfile or avoid specifying a name so the code can define names.")
+    logger.error("Several infiles given, but only one outfile. Run again with only one infile and one outfile or avoid specifying a name so that the code can define names.")
+
+  fileCounter = 0
+  for fileItem in files:
+
+    logger.info("Starting generation of vertical profile from polar volume: %s"%fileItem)
+
+    # Load the file item 
+    obj = None
+    rio = _raveio.open(fileItem)
+    obj = rio.object
+
+    # The input must be a polar volume, if it is not raise an exception!
+    if not _polarvolume.isPolarVolume(obj):
+      raise AttributeError("Must call wrwp_main with a polar volume as input, check polar file: %s"%fileItem)
+      logger.error("Must call wrwp_main with polar volume as input, check polar file: %s"%fileItem)
+
+    RaveIO_ODIM_Version = rio.version
+    RaveIO_ODIM_H5rad_Version = rio.h5radversion
+    rio.close()
+
+    if RaveIO_ODIM_Version == 1 and RaveIO_ODIM_H5rad_Version == 1:
+      options.setOdim21 = True
+      logger.info("Input volume according to ODIM-H5 ver2.1 implies an output vertical profile with ver2.1")
+
+    if fileCounter == 0:
+      if options.setOdim21:
+        print("\nGenerated vertical profile/s has ODIM version 2.1")
+      else:
+        print("\nGenerated vertical profile/s has ODIM version 2.2")
+
+      if options.outpath != None:
+        print("Vertical profile/s will be placed in directory: %s"%options.outpath)
+      else:
+        print("Vertical profiles will be placed in the wrwp_main.py install directory")
+      fileCounter = fileCounter + 1
+
+    # Define and load the wrwp object
+    wrwp = _wrwp.new()
+    fields = None
+
+    wrwp.dmin = options.dmin
+    wrwp.dmax = options.dmax
+    wrwp.nmin_wnd = options.nmin_wnd
+    wrwp.nmin_ref = options.nmin_ref
+    wrwp.emin = options.emin
+    wrwp.emax = options.emax
+    wrwp.vmin = options.vmin
+    wrwp.ff_max = options.ff_max
+    wrwp.dz = options.dz
+    wrwp.hmax = options.hmax
+    wrwp.nodata_VP = options.nodata_VP
+    wrwp.undetect_VP = options.undetect_VP
+    wrwp.gain_VP = options.gain_VP
+    wrwp.offset_VP = options.offset_VP
+
+    if options.quantities != None:
+      fields = options.quantities
+ 
+    exestart = time.time()
+
+    try:
+      profile = wrwp.generate(obj, fields)
+
+      # Extract parameters for use in filename construction if the user has not set a filename explicitly.
+      product_vp = profile.product
+      date_vp = profile.date
+      time_vp = profile.time
+      source_vp = profile.source
+
+      source_split = [str(x) for x in source_vp.split(",")]
+      for i in range(len(source_split)):
+        if source_split[i].startswith("NOD"):
+          NOD = [str(x) for x in source_split[i].split(":")]
+  
+      rio = _raveio.new()
+      rio.object = profile
+
+      # Filename based on data from the generated profile
+      fname = str(NOD[1]) + "_" + str(product_vp).lower() + "_" + str(date_vp) + "T" + str(time_vp) + "Z.h5"
+  
+      if options.outfname == None:
+        rio.filename = options.outpath + fname
+      else:
+        rio.filename = options.outpath + options.outfname
+    except:
+      logger.info("No vertical profile could be generated from polar volume: %s, check input volume and wrwp parameter settings\n"%fileItem)
+      print("No vertical profile could be generated from polar volume: %s, check input volume and wrwp parameter settings\n"%fileItem)
+      return None
+    
+    filenameV22 = rio.filename
+    rio.save()
+
+    exetime1 = time.time() - exestart
+     
+    if not options.setOdim21: 
+      if os.path.isfile(filenameV22):
+        logger.debug("Succeded in writing generated ver 2.2 vertical profile to disk: " + filenameV22)
+        logger.debug("Total generation time for ver 2.2 vertical profile: %f s"%exetime1)
+        logger.info("Finished generating ver 2.2 vertical profile, file: %s\n"%filenameV22)
+      else:
+        logger.info("Failed to write ver2.2 vertical profile to disk: \n" + filenameV22)
+    else:
+      # Converts the vertical profile from ODIM-H5 v2.2 to ODIM-H5 2.1 if wanted
+      change2Odim21(filenameV22, options.quantities, options, exestart)
+
+
+if __name__ == "__main__":
+
+  # Finds the wrwp_config.xml under /local_disk/baltrad/blt_sys/ and sets parameters necessary for wrwp generation.
+  # Usually the installation paths in the node-installer is not changed relative to default, the use of find locates the wrwp_config.xml
+  # should another path be set in the node-installer, the only requirement is that the wrwp_config.xml is somewhere under /local_disk/baltrad/blt_sys.
+
+  path2config = find('wrwp_config.xml', '/local_disk/baltrad/blt_sys')
+
+  root = ET.parse(str(path2config[0])).getroot()
+
+  for param in root.findall('param'):
+    if param.get('name') == 'DMIN':
+      DMIN = param.find('value').text
+    if param.get('name') == 'DMAX':
+      DMAX = param.find('value').text
+    if param.get('name') == 'NMIN_WND':
+      NMIN_WND = param.find('value').text
+    if param.get('name') == 'NMIN_REF':
+      NMIN_REF = param.find('value').text
+    if param.get('name') == 'EMIN':
+      EMIN = param.find('value').text
+    if param.get('name') == 'EMAX':
+      EMAX = param.find('value').text
+    if param.get('name') == 'VMIN':
+      VMIN = param.find('value').text
+    if param.get('name') == 'FF_MAX':
+      FF_MAX = param.find('value').text
+    if param.get('name') == 'DZ':
+      DZ = param.find('value').text
+    if param.get('name') == 'HMAX':
+      HMAX = param.find('value').text
+    if param.get('name') == 'NODATA_VP':
+      NODATA_VP = param.find('value').text
+    if param.get('name') == 'UNDETECT_VP':
+      UNDETECT_VP = param.find('value').text
+    if param.get('name') == 'GAIN_VP':
+      GAIN_VP = param.find('value').text
+    if param.get('name') == 'OFFSET_VP':
+      OFFSET_VP = param.find('value').text
+    if param.get('name') == 'QUANTITIES':
+      QUANTITIES = param.find('value').text
+
+    QUANTITIES_DEF = 'NV,HGHT,UWND,VWND,ff,ff_dev,dd,DBZH,DBZH_dev,NZ'
+
+  usage = "usage: %wrwp_main --infile <infile/s> --outpath <path to profiles> [args] [h]"
+  usage += "\nGenerates weather radar wind profiles directly from polar volumes."
+  usage += "\nIf a ver2.1 input volume is used, the output vertical profile is ver2.1."
+  usage += "\nIf a ver2.2 input volume is used, the output vertical profile can be either ver2.1 and ver2.2."
+  usage += "\nAdjustable parameters are stored in wrwp_config.xml but can of course also be changed from the command line."
+  usage += "\nThe default install directory for the wrwp_config.xml is under .../baltrad-wrwp/config/"
+  usage += "\nThe script is equipped with a non-rotating log, which ends up in the same directory as wrwp_main"
+
+  parser = OptionParser(usage=usage)
+
+  parser.add_option("--infiles", dest = "infiles", help = "Name of polar volume input files (including path) " + \
+                    "from which to create a vertical profile, must be in ODIM-H5 format. Note that if only one " + \
+                    "file is given it is possible to select a filename, if no filename is specified, the code " + \
+                    "will generate a name based on NOD, product, date and time. If multiple files are given no filenames" + \
+                    "can be specified and the code generates names based on earlier mentioned attributes. " + \
+                    "If several files are given, they must be given comma-separated without space in between.")
+  parser.add_option("--outpath", dest = "outpath", default = DEFAULTOUT, help = "The path to the directory " + \
+                    "where the outfile/s is/are written, default installdir")
+  parser.add_option("--outfname", dest = "outfname", default = None, help = "Selected filename for vertical profile, in ODIM-H5 format, " + \
+                    "in the case that only one input file is given, default None.")
+  parser.add_option("--quantities", dest = "quantities", type = "string", default = QUANTITIES_DEF, help = "Comma separated list of " + \
+                    "quantities. Currently supported quantities are NV,HGHT,UWND,VWND,ff,ff_dev,dd,DBZH,DBZH_dev,NZ and are given " + \
+                    "in the wrwp_config.xml file. Default if no quantities are given is UWND, VWND, HGHT, ff, ff_dev, dd, NV, DBZH, DBZH_dev and NZ.")
+  parser.add_option("--dmin", dest = "dmin", type = "int", default = DMIN, help="Minimum distance for deriving a profile [m], default 5000. Note: integer.")
+  parser.add_option("--dmax", dest = "dmax", type = "int", default = DMAX, help="Maximum distance for deriving a profile [m], default 25000. Note: integer.")
+  parser.add_option("--nmin_wnd", dest = "nmin_wnd", type = "int", default = NMIN_WND, help="Minimum sample size for wind, default 40. Note: integer.")
+  parser.add_option("--nmin_ref", dest = "nmin_ref", type = "int", default = NMIN_REF, help="Minimum sample size for reflectivity, default 40. Note: integer.")
+  parser.add_option("--emin", dest = "emin", type = "float", default = EMIN, help="Minimum elevation angle [deg], default 4.0.")
+  parser.add_option("--emax", dest = "emax", type = "float", default = EMAX, help="Maximum elevation angle [deg], default 45.0.")
+  parser.add_option("--vmin", dest = "vmin", type = "float", default = VMIN, help="Radial velocity threshold [m/s], default 2.0")
+  parser.add_option("--ff_max", dest = "ff_max", type = "float", default = FF_MAX, help="Maximum allowed calculated " + \
+                    "layer velocity [m/s], default 60.0. Layer velocity greater than ff_max will be set as nodata. " + \
+                    "Note that this implies also setting the remaining wind related parameters for this layer as nodata")
+  parser.add_option("--dz", dest = "dz", type = "int", default = DZ, help="Height interval for the generated vertical profile [m], default 200. Note: integer.")
+  parser.add_option("--hmax", dest = "hmax", type = "int", default = HMAX, help="Maximum height of the generated vertical profile [m], default 12000. Note:integer.")
+  parser.add_option("--nodata_VP", dest = "nodata_VP", type = "int", default = NODATA_VP, help="Nodata value for vertical profile, default -9999. Note: integer.")
+  parser.add_option("--undetect_VP", dest = "undetect_VP", type = "int", default = UNDETECT_VP, help="Undetect value for vertical profile, default -9999. Note:integer.")
+  parser.add_option("--gain_VP", dest = "gain_VP", type = "float", default = GAIN_VP, help="Gain value for vertical profile, default 1.0.")
+  parser.add_option("--offset_VP", dest = "offset_VP", type = "float", default = OFFSET_VP, help="Offset value for vertical profile, default 0.0.")
+  parser.add_option("--setOdim21", dest = "setOdim21", action="store_true", default = False, help="Converts the VP to ver2.1 if set, default False.")
+  parser.add_option("--verbose", dest = "verbose", action="store_true", default = False, help="Enables verbose logging and verbose printing of some info to the terminal, default False.")
+   
+  (options, args) = parser.parse_args()
+
+  # Putting a file extension to the selected filename just in case...
+  if options.outfname != None and not options.outfname.endswith(".h5"):
+    options.outfname = options.outfname + ".h5"
+ 
+  if options.outpath != DEFAULTOUT:
+    # Create main output directory if it does not exist
+    if not os.path.exists(options.outpath):
+      os.makedirs(options.outpath)
+
+    # Put a training slash if does not exist already
+    if not options.outpath.endswith('/'):
+      options.outpath = options.outpath + '/'
+
+  # Set up the logging system
+  logger = logging.getLogger('wrwp_log')
+  handler = logging.FileHandler(DEFAULTOUT + '/wrwp_log.log')
+  formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+  handler.setFormatter(formatter)
+  logger.addHandler(handler)
+
+  if options.verbose:
+    log_level = logging.DEBUG
+  else:
+    log_level = logging.INFO
+
+  logger.setLevel(log_level)
+
+
+  # Setting two "flags" responsible for filtering some printed parameter output
+  refl_flag = False
+  wnd_flag = False
+
+  if options.infiles != None:
+    filelist = [str(x) for x in options.infiles.split(",")] 
+    print("\nGenerating vertical profile/s from volume/s:")
+    for i in range(0, len(filelist)):
+      print(filelist[i])
+  
+  if options.verbose:
+    print("\nSelected vertical profile parameter settings")
+    print("----------------------------------------------")
+
+    if options.quantities != None:
+      print("Quantities in the generated vertical profile: %s"%options.quantities)
+      if "DBZH" in options.quantities or "DBZH_dev" in options.quantities or "NZ" in options.quantities:
+        refl_flag = True
+      if "ff" in options.quantities or "ff_dev" in options.quantities or "dd" in options.quantities or \
+        "UWND" in options.quantities or "VWND" in options.quantities or "NV" in options.quantities:
+        wnd_flag = True
+    else:
+      print("Quantities in the generated vertical profile: ff, ff_dev, dd, NV, DBZH, DBZH_dev, NZ")
+      refl_flag = True
+      wnd_flag = True
+
+    print("Minimum distance for vertical profile, dmin: %s [m]"%options.dmin)
+    print("Maximum distance for vertical profile, dmax: %s [m]"%options.dmax)
+    print("Minimum elevation angle used in vertical profile, emin: %s [deg]"%options.emin)
+    print("Maximum elevation angle used in the vertical profile, emax: %s [deg]"%options.emax)
+    print("Height interval for vertical profile, dz: %s [m]"%options.dz)
+    print("Maximum height for vertical profile, hmax: %s [m]"%options.hmax)
+
+    if wnd_flag:
+      print("Minimum sample size required for wind in the vertical profile, nmin_wnd: %s"%options.nmin_wnd)
+      print("Radial velocity threshold for vertical profile, vmin: %s [m/s]"%options.vmin)
+      print("Maximum allowed layer velocity for vertical profile, ff_max: %s [m/s]"%options.ff_max)
+    if refl_flag:
+      print("Minimum sample size required for reflectivity in the vertical profile, nmin_ref: %s"%options.nmin_ref)
+
+    print("Nodata value, nodata_VP: %s"%options.nodata_VP)
+    print("Undetect value, undetect_VP: %s"%options.undetect_VP)
+    print("Gain value, gain_VP: %s"%options.gain_VP)
+    print("Offset value, offset_VP: %s"%options.offset_VP)
+
+  if options.infiles != None:
+    main(options)
+  else:
+    parser.print_help()
+  

@@ -56,22 +56,11 @@ along with baltrad-wrwp.  If not, see <http://www.gnu.org/licenses/>.
 
 #define DEG2RAD     DEG_TO_RAD      /* Degrees to radians. From PROJ.4 */
 #define RAD2DEG     RAD_TO_DEG      /* Radians to degrees. From PROJ.4 */
-#define NOR         20000           /* Number of rows in matrix A used in the computation */
+#define NOR         40000           /* Number of rows in matrix A used in the computation */
 #define NOC         3               /* Number of columns in matrix A used in the computation */
 #define NRHS        1               /* Number of right-hand sides; that is, the number of columns in matrix B used in the computation */
 #define LDA         NOC             /* Leading dimension of the array specified for a */
 #define LDB         NRHS            /* Leading dimension of the array specified for b */
-#define DMIN        4000            /* Minimum distance for deriving a profile [m] */
-#define DMAX        40000           /* Maximum distance for deriving a profile [m] */
-#define NMIN        36              /* Minimum sample size */
-#define EMIN        2.5             /* Minimum elevation angle [deg] */
-#define VMIN        2.0             /* Radial velocity threshold [m/s] */
-#define DZ          200             /* Height interval for deriving a profile [m] */
-#define HMAX        12000           /* Maximum height of the profile [m] */
-#define NODATA_VP   -9999           /* Nodata value used in the vertical profile */
-#define UNDETECT_VP -9999           /* Undetect value used in the vertical profile */         
-#define GAIN_VP     1.0             /* Gain value for the fields UWND and VWND */
-#define OFFSET_VP   0.0             /* Offset value for the fields UWND and VWND */
 
 /**
  * Defines a weather radar wind product generator
@@ -82,6 +71,13 @@ typedef struct _Wrwp_t Wrwp_t;
  * Type definition to use when creating a rave object.
  */
 extern RaveCoreObjectType Wrwp_TYPE;
+
+/**
+ * Returns the height interval for deriving a profile [m]
+ * @param[in] self - self
+ * @return the height interval (default value is DZ)
+ */
+int Wrwp_getDZ(Wrwp_t* self);
 
 /**
  * Sets the height interval for deriving a profile [m]
@@ -147,11 +143,18 @@ double Wrwp_getOFFSET_VP(Wrwp_t* self);
 void Wrwp_setOFFSET_VP(Wrwp_t* self, double offset_vp);
 
 /**
- * Returns the height interval for deriving a profile [m]
+ * Sets maximum allowed velocity for each layer in the profile [m/s]
  * @param[in] self - self
- * @return the height interval (default value is DZ)
+ * @param[in] ff_max - maximum allowed velocity for each layer in the profile
  */
-int Wrwp_getDZ(Wrwp_t* self);
+void Wrwp_setFF_MAX(Wrwp_t* self, double ff_max);
+
+/**
+ * Returns maximum allowed velocity for each layer in the profile [m/s]
+ * @param[in] self - self
+ * @return maximum allowed velocity for each layer in the profile [m/s] (default is FF_MAX)
+ */
+double Wrwp_getFF_MAX(Wrwp_t* self);
 
 /**
  * Sets maximum height of the profile [m]
@@ -166,6 +169,34 @@ void Wrwp_setHMAX(Wrwp_t* self, int hmax);
  * @return maximum height of the profile (default is HMAX)
  */
 int Wrwp_getHMAX(Wrwp_t* self);
+
+/**
+ * Sets minimum number of points for wind
+ * @param[in] self - self
+ * @param[in] nmin_wnd - minimum number of points for wind
+ */
+void Wrwp_setNMIN_WND(Wrwp_t* self, int nmin_wnd);
+
+/**
+ * Returns minimum number of points for wind
+ * @param[in] self - self
+ * @return minimum number of points for wind (default NMIN_WND)
+ */
+int Wrwp_getNMIN_WND(Wrwp_t* self);
+
+/**
+ * Sets minimum number of points for reflectivity
+ * @param[in] self - self
+ * @param[in] nmin_ref - minimum number of points for reflectivity
+ */
+void Wrwp_setNMIN_REF(Wrwp_t* self, int nmin_ref);
+
+/**
+ * Returns minimum number of points for reflectivity
+ * @param[in] self - self
+ * @return minimum number of points for reflectivity (default NMIN_REF)
+ */
+int Wrwp_getNMIN_REF(Wrwp_t* self);
 
 /**
  * Sets minimum distance for deriving a profile [m]
@@ -208,6 +239,20 @@ void Wrwp_setEMIN(Wrwp_t* self, double emin);
  * @return Minimum elevation angle [deg] (default EMIN)
  */
 double Wrwp_getEMIN(Wrwp_t* self);
+
+/**
+ * Sets maximum elevation angle [deg]
+ * @param[in] self - self
+ * @param[in] emax - maximum elevation angle [deg]
+ */
+void Wrwp_setEMAX(Wrwp_t* self, double emax);
+
+/**
+ * Returns maximum elevation angle [deg]
+ * @param[in] self - self
+ * @return Maximum elevation angle [deg] (default EMAX)
+ */
+double Wrwp_getEMAX(Wrwp_t* self);
 
 /**
  * Sets radial velocity threshold [m/s]

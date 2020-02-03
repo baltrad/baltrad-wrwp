@@ -203,8 +203,24 @@ static PyObject* _pywrwp_getattro(PyWrwp* self, PyObject* name)
     return PyInt_FromLong(Wrwp_getDMAX(self->wrwp));
   } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("emin", name) == 0) {
     return PyFloat_FromDouble(Wrwp_getEMIN(self->wrwp));
+  }  else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("emax", name) == 0) {
+    return PyFloat_FromDouble(Wrwp_getEMAX(self->wrwp));
   } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("vmin", name) == 0) {
     return PyFloat_FromDouble(Wrwp_getVMIN(self->wrwp));
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("nmin_wnd", name) == 0) {
+    return PyInt_FromLong(Wrwp_getNMIN_WND(self->wrwp));
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("nmin_ref", name) == 0) {
+    return PyInt_FromLong(Wrwp_getNMIN_REF(self->wrwp));
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("ff_max", name) == 0) {
+    return PyFloat_FromDouble(Wrwp_getFF_MAX(self->wrwp));
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("nodata_VP", name) == 0) {
+    return PyInt_FromLong(Wrwp_getNODATA_VP(self->wrwp));
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("undetect_VP", name) == 0) {
+    return PyInt_FromLong(Wrwp_getUNDETECT_VP(self->wrwp));
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("gain_VP", name) == 0) {
+    return PyFloat_FromDouble(Wrwp_getGAIN_VP(self->wrwp));
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("offset_VP", name) == 0) {
+    return PyFloat_FromDouble(Wrwp_getOFFSET_VP(self->wrwp));
   }
   return PyObject_GenericGetAttr((PyObject*)self, name);
 }
@@ -250,6 +266,14 @@ static int _pywrwp_setattro(PyWrwp* self, PyObject* name, PyObject* val)
     } else {
       raiseException_gotoTag(done, PyExc_TypeError, "emin must be an integer or a float");
     }
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("emax", name) == 0) {
+    if (PyFloat_Check(val)) {
+      Wrwp_setEMAX(self->wrwp, PyFloat_AsDouble(val));
+    } else if (PyInt_Check(val)) {
+      Wrwp_setEMAX(self->wrwp, (double)PyInt_AsLong(val));
+    } else {
+      raiseException_gotoTag(done, PyExc_TypeError, "emax must be an integer or a float");
+    }
   } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("vmin", name) == 0) {
     if (PyFloat_Check(val)) {
       Wrwp_setVMIN(self->wrwp, PyFloat_AsDouble(val));
@@ -258,7 +282,55 @@ static int _pywrwp_setattro(PyWrwp* self, PyObject* name, PyObject* val)
     } else {
       raiseException_gotoTag(done, PyExc_TypeError, "vmin must be an integer or a float");
     }
-  }
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("nmin_wnd", name) == 0) {
+    if (PyInt_Check(val)) {
+      Wrwp_setNMIN_WND(self->wrwp, PyInt_AsLong(val));
+    } else {
+      raiseException_gotoTag(done, PyExc_TypeError, "nmin_wnd must be an integer");
+    }
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("nmin_ref", name) == 0) {
+    if (PyInt_Check(val)) {
+      Wrwp_setNMIN_REF(self->wrwp, PyInt_AsLong(val));
+    } else {
+      raiseException_gotoTag(done, PyExc_TypeError, "nmin_ref must be an integer");
+    }
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("ff_max", name) == 0) {
+    if (PyFloat_Check(val)) {
+      Wrwp_setFF_MAX(self->wrwp, PyFloat_AsDouble(val));
+    } else if (PyInt_Check(val)) {
+      Wrwp_setFF_MAX(self->wrwp, (double)PyInt_AsLong(val));
+    } else {
+      raiseException_gotoTag(done, PyExc_TypeError, "ff_max must be an integer or a float");
+    }
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("nodata_VP", name) == 0) {
+    if (PyInt_Check(val)) {
+      Wrwp_setNODATA_VP(self->wrwp, PyInt_AsLong(val));
+    } else {
+      raiseException_gotoTag(done, PyExc_TypeError, "nodata_VP must be an integer");
+    }
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("undetect_VP", name) == 0) {
+    if (PyInt_Check(val)) {
+      Wrwp_setUNDETECT_VP(self->wrwp, PyInt_AsLong(val));
+    } else {
+      raiseException_gotoTag(done, PyExc_TypeError, "undetect_VP must be an integer");
+    }
+  }  else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("gain_VP", name) == 0) {
+    if (PyFloat_Check(val)) {
+      Wrwp_setGAIN_VP(self->wrwp, PyFloat_AsDouble(val));
+    } else if (PyInt_Check(val)) {
+      Wrwp_setGAIN_VP(self->wrwp, (double)PyInt_AsLong(val));
+    } else {
+      raiseException_gotoTag(done, PyExc_TypeError, "gain_VP must be an integer or a float");
+    }
+  }  else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("offset_VP", name) == 0) {
+    if (PyFloat_Check(val)) {
+      Wrwp_setOFFSET_VP(self->wrwp, PyFloat_AsDouble(val));
+    } else if (PyInt_Check(val)) {
+      Wrwp_setOFFSET_VP(self->wrwp, (double)PyInt_AsLong(val));
+    } else {
+      raiseException_gotoTag(done, PyExc_TypeError, "offset_VP must be an integer or a float");
+    }
+  } 
 
   result = 0;
 done:
