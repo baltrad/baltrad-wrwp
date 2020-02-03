@@ -22,7 +22,8 @@ along with RAVE.  If not, see <http://www.gnu.org/licenses/>.'''
 #produced vertical profiles will be ver2.1. In the case of input volumes of
 #ver2.2 the output vertical profiles can be either v2.1 or v2.2.
 #
-#Adjustable parameters is placed in the file wrwp_config.xml which is placed under .../baltrad-wrwp/bin/ as default. 
+#Adjustable parameters is placed in the file wrwp_config.xml which is placed under .../baltrad-wrwp/bin/ as default
+#altough the code will be able to find the xml-file as long as it is stored somewhere under /local_disk/baltrad/blt_sys. 
 #The necessary parameters in the wrwp_config.xml can of course also be adjusted from the command-line when executing
 #the code.
  
