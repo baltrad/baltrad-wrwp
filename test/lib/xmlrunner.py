@@ -13,11 +13,12 @@ import sys
 import time
 import traceback
 import unittest
-from StringIO import StringIO
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
+
 from xml.sax.saxutils import escape
-
-from StringIO import StringIO
-
 
 class _TestInfo(object):
 
@@ -168,7 +169,7 @@ class XMLTestRunner(object):
         classname = class_.__module__ + "." + class_.__name__
         if self._stream == None:
             filename = "TEST-%s.xml" % classname
-            stream = file(os.path.join(self._path, filename), "w")
+            stream = open(os.path.join(self._path, filename), "w")
             stream.write('<?xml version="1.0" encoding="utf-8"?>\n')
         else:
             stream = self._stream
@@ -310,7 +311,7 @@ class XMLTestRunnerTest(unittest.TestCase):
         """
         class TestTest(unittest.TestCase):
             def test_foo(self):
-                print "Test"
+                print("Test")
         self._try_test_run(TestTest, """<testsuite errors="0" failures="0" name="unittest.TestSuite" tests="1" time="0.000">
   <testcase classname="__main__.TestTest" name="test_foo" time="0.000"></testcase>
   <system-out><![CDATA[Test
