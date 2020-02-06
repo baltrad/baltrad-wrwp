@@ -33,7 +33,7 @@ def.mk:
 build: def.mk
 	$(MAKE) -C lib
 	$(MAKE) -C pywrwp
-	$(MAKE) -C bin
+	#$(MAKE) -C bin
 
 .PHONY:install
 install: def.mk
