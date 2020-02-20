@@ -119,38 +119,35 @@ def generate(files, arguments):
   wrwp = _wrwp.new()
   fields = None
 
-  # Parameter values from the web-GUI
-  if "interval" in args.keys():
-    wrwp.dz = strToNumber(args["interval"])
-  if "maxheight" in args.keys():
-    wrwp.hmax = strToNumber(args["maxheight"])
-  if "mindistance" in args.keys():
-    wrwp.dmin = strToNumber(args["mindistance"])
-  if "maxdistance" in args.keys():
-    wrwp.dmax = strToNumber(args["maxdistance"]) 
-  if "minelevationangle" in args.keys():
-    wrwp.emin = strToNumber(args["minelevationangle"])
-  if "velocitythreshold" in args.keys():
-    wrwp.vmin = strToNumber(args["velocitythreshold"])
-  if "fields" in args.keys():
-    fields = args["fields"]
-
-  # Finds the wrwp_config.xml under /local_disk/baltrad/blt_sys/ and sets the auxillary parameters not defined in the web-GUI.
+  # Finds the wrwp_config.xml under /local_disk/baltrad/blt_sys/ and sets parameters necessary for wrwp generation.
   # Usually the installation paths in the node-installer is not changed relative to default, the use of find locates the wrwp_config.xml
-  # if another path is set in the node-installer, the only requirement is that the wrwp_config.xml is somewhere under /local_disk/baltrad/blt_sys.
+  # should another path be set in the node-installer, the only requirement is that the wrwp_config.xml is somewhere under /local_disk/baltrad/blt_sys.
 
   path2config = find('wrwp_config.xml', '/local_disk/baltrad/blt_sys')
-
   root = ET.parse(str(path2config[0])).getroot()
+
   for param in root.findall('param'):
+
     if param.get('name') == 'EMAX':
       wrwp.emax = strToNumber(param.find('value').text)
+    if param.get('name') == 'EMIN':
+      wrwp.emin = strToNumber(param.find('value').text)
+    if param.get('name') == 'DMAX':
+      wrwp.dmax = strToNumber(param.find('value').text)
+    if param.get('name') == 'DMIN':
+      wrwp.dmin = strToNumber(param.find('value').text)
+    if param.get('name') == 'VMIN':
+      wrwp.vmin = strToNumber(param.find('value').text)
     if param.get('name') == 'NMIN_WND':
       wrwp.nmin_wnd = strToNumber(param.find('value').text)
     if param.get('name') == 'NMIN_REF':
       wrwp.nmin_ref = strToNumber(param.find('value').text)
     if param.get('name') == 'FF-MAX':
       wrwp.ff_max = strToNumber(param.find('value').text)
+    if param.get('name') == 'DZ':
+      wrwp.dz = strToNumber(param.find('value').text)
+    if param.get('name') == 'HMAX':
+      wrwp.hmax = strToNumber(param.find('value').text)
     if param.get('name') == 'NODATA_VP':
       wrwp.nodata_VP = strToNumber(param.find('value').text)
     if param.get('name') == 'UNDETECT_VP':
@@ -160,6 +157,28 @@ def generate(files, arguments):
     if param.get('name') == 'OFFSET_VP':
       wrwp.offset_VP = strToNumber(param.find('value').text)
 
+    if param.get('name') == 'QUANTITIES':
+      QUANTITIES = param.find('value').text
+
+    # Parameter values from the web-GUI, they overwright the ones above.
+    if "interval" in args.keys():
+      wrwp.dz = strToNumber(args["interval"])
+    if "maxheight" in args.keys():
+      wrwp.hmax = strToNumber(args["maxheight"])
+    if "mindistance" in args.keys():
+      wrwp.dmin = strToNumber(args["mindistance"])
+    if "maxdistance" in args.keys():
+      wrwp.dmax = strToNumber(args["maxdistance"]) 
+    if "minelevationangle" in args.keys():
+      wrwp.emin = strToNumber(args["minelevationangle"])
+    if "velocitythreshold" in args.keys():
+      wrwp.vmin = strToNumber(args["velocitythreshold"])
+    if "fields" in args.keys():
+      fields = args["fields"]
+
+    if fields == None:
+      fields = QUANTITIES # If no fields are given in the web-GUI, we build wrwp with all the supported quantities
+    
   if len(files) != 1:
     raise AttributeError("Must call plugin with _one_ polar volume")
   
