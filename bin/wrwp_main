@@ -53,6 +53,9 @@ import logging, logging.handlers
 # The default profile output directory if nothing else is selected
 DEFAULTOUT = os.path.dirname(os.path.realpath(__file__)) + '/'
 
+# Configuration file probably is located in ../config/wrwp_config.xml relative to where this program is placed.
+WRWP_CONFIG_FILE=os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),"config/wrwp_config.xml")
+
 def find(pattern, path):
   # Locates a file (pattern) in a directory tree (path)
   result = []
@@ -215,14 +218,31 @@ def main(options):
 
 
 if __name__ == "__main__":
+  # Since the config can be placed in a few different places, we first check current directory, then the environment variable WRWP_CONFIG_FILE, if it doesn't exist or point to non-existing
+  # config file. We try a file located relative to this script (WRWP_CONFIG_FILE) defined above. Finally we try anything under /etc/baltrad.
+  # Hopefully, one of those places will be enough.
+  path2config = None
+  if os.path.exists("wrwp_config.xml"):
+    path2config = "wrwp_config.xml"
+    
+  if path2config is None and "WRWP_CONFIG_FILE" in os.environ:
+    if os.path.exists(os.environ["WRWP_CONFIG_FILE"]):
+      path2config=os.environ["WRWP_CONFIG_FILE"]
+  
+  if path2config is None and os.path.exists(WRWP_CONFIG_FILE):
+    path2config = WRWP_CONFIG_FILE
+  
+  if path2config is None:
+    etcpaths = find('wrwp_config.xml', '/etc/baltrad')
+    if len(etcpaths) > 0:
+      path2config=etcpaths[0]
 
-  # Finds the wrwp_config.xml under /local_disk/baltrad/blt_sys/ and sets parameters necessary for wrwp generation.
-  # Usually the installation paths in the node-installer is not changed relative to default, the use of find locates the wrwp_config.xml
-  # should another path be set in the node-installer, the only requirement is that the wrwp_config.xml is somewhere under /local_disk/baltrad/blt_sys.
+  if path2config is None:
+    print("Can not find any wrwp configuration file. Neither environment variable WRWP_CONFIG_FILE has been set, nothing is found in %s and nothing could be found under /etc/baltrad"%WRWP_CONFIG_FILE)
+    print("You can always try to run this binary with WRWP_CONFIG_FILE=/path/to/wrwp_config.xml %s ..."%sys.argv[0])
+    sys.exit(127)
 
-  path2config = find('wrwp_config.xml', '/local_disk/baltrad/blt_sys')
-
-  root = ET.parse(str(path2config[0])).getroot()
+  root = ET.parse(str(path2config)).getroot()
 
   for param in root.findall('param'):
     if param.get('name') == 'DMIN':
