@@ -67,6 +67,8 @@ from rave_defines import CENTER_ID, GAIN, OFFSET
 
 logger = rave_pgf_logger.create_logger()
 
+# Configuration file probably is located in ../config/wrwp_config.xml relative to where this program is placed.
+WRWP_CONFIG_FILE=os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),"config/wrwp_config.xml")
 
 ravebdb = None
 try:
@@ -114,20 +116,36 @@ def strToNumber(sval):
 #@param arguments the arguments defining the vertical profile
 #@return a temporary h5 file with the vertical profile
 def generate(files, arguments):
-
   args = arglist2dict(arguments)
   wrwp = _wrwp.new()
   fields = None
 
-  # Finds the wrwp_config.xml under /local_disk/baltrad/blt_sys/ and sets parameters necessary for wrwp generation.
-  # Usually the installation paths in the node-installer is not changed relative to default, the use of find locates the wrwp_config.xml
-  # should another path be set in the node-installer, the only requirement is that the wrwp_config.xml is somewhere under /local_disk/baltrad/blt_sys.
+  # Since the config can be placed in a few different places, we first check current directory, then the environment variable WRWP_CONFIG_FILE, if it doesn't exist or point to non-existing
+  # config file. We try a file located relative to this script (WRWP_CONFIG_FILE) defined above. Finally we try anything under /etc/baltrad.
+  # Hopefully, one of those places will be enough.
+  path2config = None
+  if os.path.exists("wrwp_config.xml"):
+    path2config = "wrwp_config.xml"
+    
+  if path2config is None and "WRWP_CONFIG_FILE" in os.environ:
+    if os.path.exists(os.environ["WRWP_CONFIG_FILE"]):
+      path2config=os.environ["WRWP_CONFIG_FILE"]
+  
+  if path2config is None and os.path.exists(WRWP_CONFIG_FILE):
+    path2config = WRWP_CONFIG_FILE
+  
+  if path2config is None:
+    etcpaths = find('wrwp_config.xml', '/etc/baltrad')
+    if len(etcpaths) > 0:
+      path2config=etcpaths[0]
+      
+  if path2config is None or not os.path.exists(path2config):      
+    logger.info("Could not find any wrwp_config.xml file in any of the expected locations")
+    return None
 
-  path2config = find('wrwp_config.xml', '/local_disk/baltrad/blt_sys')
-  root = ET.parse(str(path2config[0])).getroot()
+  root = ET.parse(str(path2config)).getroot()
 
   for param in root.findall('param'):
-
     if param.get('name') == 'EMAX':
       wrwp.emax = strToNumber(param.find('value').text)
     if param.get('name') == 'EMIN':
@@ -171,8 +189,16 @@ def generate(files, arguments):
       wrwp.dmax = strToNumber(args["maxdistance"]) 
     if "minelevationangle" in args.keys():
       wrwp.emin = strToNumber(args["minelevationangle"])
+    if "maxelevationangle" in args.keys():
+      wrwp.emax = strToNumber(args["maxelevationangle"])
     if "velocitythreshold" in args.keys():
       wrwp.vmin = strToNumber(args["velocitythreshold"])
+    if "maxvelocitythreshold" in args.keys():
+      wrwp.ff_max = strToNumber(args["maxvelocitythreshold"])
+    if "minsamplesizereflectivity" in args.keys():
+      wrwp.nmin_ref = strToNumber(args["minsamplesizereflectivity"])
+    if "minsamplesizewind" in args.keys():
+      wrwp.nmin_wnd = strToNumber(args["minsamplesizewind"])
     if "fields" in args.keys():
       fields = args["fields"]
 
