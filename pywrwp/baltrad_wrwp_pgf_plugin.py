@@ -67,15 +67,15 @@ from rave_defines import CENTER_ID, GAIN, OFFSET
 
 logger = rave_pgf_logger.create_logger()
 
-# Configuration file probably is located in ../config/wrwp_config.xml relative to where this program is placed.
-WRWP_CONFIG_FILE=os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),"config/wrwp_config.xml")
+# Configuration file probably is located in ../../../config/wrwp_config.xml relative to where this program is placed.
+WRWP_CONFIG_FILE=os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))),"config/wrwp_config.xml")
 
 ravebdb = None
 try:
   import rave_bdb
   ravebdb = rave_bdb.rave_bdb()
 except:
-  pass
+  logger.exception("Failed to initialize rave db")
 
 # Locates a file (pattern) in a directory tree (path)
 def find(pattern, path):
