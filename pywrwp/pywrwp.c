@@ -183,7 +183,27 @@ done:
  */
 static struct PyMethodDef _pywrwp_methods[] =
 {
-  {"generate", (PyCFunction)_pywrwp_generate, 1},
+  {"dz", NULL},
+  {"hmax", NULL},
+  {"dmin", NULL},
+  {"dmax", NULL},
+  {"emin", NULL},
+  {"emax", NULL},
+  {"vmin", NULL},
+  {"nmin_wnd", NULL},
+  {"nmin_ref", NULL},
+  {"ff_max", NULL},
+  {"nodata_VP", NULL},
+  {"undetect_VP", NULL},
+  {"gain_VP", NULL},
+  {"offset_VP", NULL},
+  {"generate", (PyCFunction)_pywrwp_generate, 1,
+    "generate(pvol,fields) -> vp\n\n"
+    "Function for deriving wind and reflectivity profiles from polar volume data\n\n"
+    "pvol   - A polar volume\n"
+    "fields - A comma separated list of fields to be generated. Currently, the following fields can be generated\n"
+    "         NV,HGHT,UWND,VWND,ff,ff_dev,dd,DBZH,DBZH_dev,NZ. If None, then a default setup will be generated."
+  },
   {NULL, NULL } /* sentinel */
 };
 
@@ -338,6 +358,34 @@ done:
 }
 /*@} End of Weather radar wind profiles */
 
+/*@{ Documentation about the type */
+PyDoc_STRVAR(_pywrwp_type_doc,
+  "Function for deriving weather radar wind and reflectivity profiles. The profile only works on polar volumes.\n"
+  "\n"
+  "There are a number of member attributes that can be set to tune the profile generation.\n"
+  "dmin       - Minimum distance for deriving a profile [m], default 5000\n"
+  "dmax       - Maximum distance for deriving a profile [m], default 25000\n"
+  "nmin_wnd   - Minimum sample size wind, default 40\n"
+  "nmin_ref   - Minimum sample size reflectivity, default 40\n"
+  "emin       - Minimum elevation angle [deg], default 0.5\n"
+  "emax       - Maximum elevation angle [deg], default 45.0\n"
+  "vmin       - Radial velocity threshold [m/s], default 2.0\n"
+  "ff_max     - Maximum allowed layer velocity [m/s], default 60.0\n"
+  "dz         - Height interval for deriving a profile [m], default 200\n"
+  "hmax       - Maximum height of the profile [m], default 12000\n"
+  "nodata_VP  - Nodata value used in the vertical profile, default -9999\n"
+  "undetect_VP- Undetect value used in the vertical profile, default -9999\n"
+  "gain_VP    - Gain value for the fields UWND and VWND, default 1.0\n"
+  "offset_VP  - Offset value for the fields UWND and VWND, default 0.0\n"
+  "\n"
+  "Usage:\n"
+  "import _wrwp\n"
+  "a = _wrwp.new()\n"
+  "a.dz = 250.0\n"
+  "result = a.generate(_raveio.open(\"somepvol.h5\").object)\n"
+);
+/*@} End of Documentation about the type */
+
 /*@{ Type definitions */
 PyTypeObject PyWrwp_Type =
 {
@@ -362,7 +410,7 @@ PyTypeObject PyWrwp_Type =
   (setattrofunc)_pywrwp_setattro, /*tp_setattro*/
   0,                            /*tp_as_buffer*/
   Py_TPFLAGS_DEFAULT, /*tp_flags*/
-  0,                            /*tp_doc*/
+  _pywrwp_type_doc,             /*tp_doc*/
   (traverseproc)0,              /*tp_traverse*/
   (inquiry)0,                   /*tp_clear*/
   0,                            /*tp_richcompare*/
@@ -391,7 +439,10 @@ PyTypeObject PyWrwp_Type =
 /// --------------------------------------------------------------------
 /*@{ Module setup */
 static PyMethodDef functions[] = {
-  {"new", (PyCFunction)_pywrwp_new, 1},
+  {"new", (PyCFunction)_pywrwp_new, 1,
+     "new() -> new instance of the WrwpCore object\n\n"
+     "Creates a new instance of the WrwpCore object"
+  },
   {NULL,NULL} /*Sentinel*/
 };
 
@@ -405,7 +456,7 @@ MOD_INIT(_wrwp)
 
   MOD_INIT_VERIFY_TYPE_READY(&PyWrwp_Type);
 
-  MOD_INIT_DEF(module, "_wrwp", NULL/*doc*/, functions);
+  MOD_INIT_DEF(module, "_wrwp", _pywrwp_type_doc, functions);
   if (module == NULL) {
     return MOD_INIT_ERROR;
   }

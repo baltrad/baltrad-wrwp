@@ -118,8 +118,21 @@ class WrwpTest(unittest.TestCase):
     obj = _wrwp.new()
     self.assertNotEqual(-1, str(type(obj)).find("WrwpCore"))
 
-  def test_dz(self):
+  def test_load_wrwp_defaults_to_obj(self):
     obj = load_wrwp_defaults_to_obj()
+    self.assertEqual(200, obj.dz)
+    self.assertEqual(12000, obj.hmax)
+    self.assertEqual(5000, obj.dmin)
+    self.assertEqual(25000, obj.dmax)
+    self.assertAlmostEqual(0.5, obj.emin, 4)
+    self.assertAlmostEqual(45.0, obj.emax, 4)
+    self.assertAlmostEqual(2.0, obj.vmin, 4)
+    self.assertAlmostEqual(60.0, obj.ff_max, 4)
+    self.assertEqual(40, obj.nmin_wnd, 4)
+    self.assertEqual(40, obj.nmin_ref, 4)
+    
+  def test_dz(self):
+    obj = _wrwp.new()
     self.assertEqual(200, obj.dz)
     obj.dz = 100
     self.assertEqual(100, obj.dz)
@@ -131,7 +144,7 @@ class WrwpTest(unittest.TestCase):
     self.assertEqual(100, obj.dz)
 
   def test_hmax(self):
-    obj = load_wrwp_defaults_to_obj()
+    obj = _wrwp.new()
     self.assertEqual(12000, obj.hmax)
     obj.hmax = 100
     self.assertEqual(100, obj.hmax)
@@ -143,7 +156,7 @@ class WrwpTest(unittest.TestCase):
     self.assertEqual(100, obj.hmax)
 
   def test_dmin(self):
-    obj = load_wrwp_defaults_to_obj()
+    obj = _wrwp.new()
     self.assertEqual(5000, obj.dmin)
     obj.dmin = 100
     self.assertEqual(100, obj.dmin)
@@ -155,7 +168,7 @@ class WrwpTest(unittest.TestCase):
     self.assertEqual(100, obj.dmin)
     
   def test_dmax(self):
-    obj = load_wrwp_defaults_to_obj()
+    obj = _wrwp.new()
     self.assertEqual(25000, obj.dmax)
     obj.dmax = 100
     self.assertEqual(100, obj.dmax)
@@ -167,7 +180,7 @@ class WrwpTest(unittest.TestCase):
     self.assertEqual(100, obj.dmax)
 
   def test_emin(self):
-    obj = load_wrwp_defaults_to_obj()
+    obj = _wrwp.new()
     self.assertAlmostEqual(0.5, obj.emin, 4)
     obj.emin = 3.5
     self.assertAlmostEqual(3.5, obj.emin, 4)
@@ -175,7 +188,7 @@ class WrwpTest(unittest.TestCase):
     self.assertAlmostEqual(4.0, obj.emin, 4)
 
   def test_emax(self):
-    obj = load_wrwp_defaults_to_obj()
+    obj = _wrwp.new()
     self.assertAlmostEqual(45.0, obj.emax, 4)
     obj.emax = 35.0
     self.assertAlmostEqual(35.0, obj.emax, 4)
@@ -183,7 +196,7 @@ class WrwpTest(unittest.TestCase):
     self.assertAlmostEqual(4.0, obj.emax, 4)
 
   def test_vmin(self):
-    obj = load_wrwp_defaults_to_obj()
+    obj = _wrwp.new()
     self.assertAlmostEqual(2.0, obj.vmin, 4)
     obj.vmin = 3.5
     self.assertAlmostEqual(3.5, obj.vmin, 4)
@@ -191,7 +204,7 @@ class WrwpTest(unittest.TestCase):
     self.assertAlmostEqual(4.0, obj.vmin, 4)
 
   def test_ff_max(self):
-    obj = load_wrwp_defaults_to_obj()
+    obj = _wrwp.new()
     self.assertAlmostEqual(60.0, obj.ff_max, 4)
     obj.ff_max = 3.5
     self.assertAlmostEqual(3.5, obj.ff_max, 4)
@@ -199,7 +212,7 @@ class WrwpTest(unittest.TestCase):
     self.assertAlmostEqual(90.0, obj.ff_max, 4)
 
   def test_nmin_wnd(self):
-    obj = load_wrwp_defaults_to_obj()
+    obj = _wrwp.new()
     self.assertEqual(40, obj.nmin_wnd, 4)
     obj.nmin_wnd = 70
     self.assertEqual(70, obj.nmin_wnd, 4)
@@ -207,7 +220,7 @@ class WrwpTest(unittest.TestCase):
     self.assertEqual(20, obj.nmin_wnd, 4)
 
   def test_nmin_ref(self):
-    obj = load_wrwp_defaults_to_obj()
+    obj = _wrwp.new()
     self.assertEqual(40, obj.nmin_ref, 4)
     obj.nmin_ref = 70
     self.assertEqual(70, obj.nmin_ref, 4)

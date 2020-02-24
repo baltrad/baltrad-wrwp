@@ -77,23 +77,24 @@ struct _Wrwp_t
 /**
  * Constructor
  */
+
 static int Wrwp_constructor(RaveCoreObject* obj)
 {
   Wrwp_t* wrwp = (Wrwp_t*)obj;
-  wrwp->dz = 0;
-  wrwp->hmax = 0; 
-  wrwp->dmin = 0;
-  wrwp->dmax = 0;
-  wrwp->nmin_wnd = 0;
-  wrwp->nmin_ref = 0;
-  wrwp->emin = 0.0;
-  wrwp->emax = 0.0;
-  wrwp->ff_max = 0.0;
-  wrwp->vmin = 0.0;
-  wrwp->nodata_VP = 0;
-  wrwp->gain_VP = 1.0; /* The gain cannot be initialized to 0.0! */
-  wrwp->offset_VP = 0.0;
-  wrwp->undetect_VP = 0;
+  wrwp->dmin = DMIN;
+  wrwp->dmax = DMAX;
+  wrwp->nmin_wnd = NMIN_WND;
+  wrwp->nmin_ref = NMIN_REF;
+  wrwp->emin = EMIN;
+  wrwp->emax = EMAX;
+  wrwp->vmin = VMIN;
+  wrwp->ff_max = FF_MAX;
+  wrwp->dz = DZ;
+  wrwp->hmax = HMAX;
+  wrwp->nodata_VP = NODATA_VP;
+  wrwp->undetect_VP = UNDETECT_VP;
+  wrwp->gain_VP = GAIN_VP; /* The gain cannot be initialized to 0.0! */
+  wrwp->offset_VP = OFFSET_VP;
   return 1;
 }
 

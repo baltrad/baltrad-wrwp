@@ -62,6 +62,24 @@ along with baltrad-wrwp.  If not, see <http://www.gnu.org/licenses/>.
 #define LDA         NOC             /* Leading dimension of the array specified for a */
 #define LDB         NRHS            /* Leading dimension of the array specified for b */
 
+/******************************************************************************/
+/* Defines of default values in the wrwp instance                             */
+/******************************************************************************/
+#define DMIN        5000            /* Minimum distance for deriving a profile [m] */
+#define DMAX        25000           /* Maximum distance for deriving a profile [m] */
+#define NMIN_WND    40              /* Minimum sample size wind */
+#define NMIN_REF    40              /* Minimum sample size reflectivity */
+#define EMIN        0.5             /* Minimum elevation angle [deg] */
+#define EMAX        45.0            /* Maximum elevation angle [deg] */
+#define VMIN        2.0             /* Radial velocity threshold [m/s] */
+#define FF_MAX      60.0            /* Maximum allowed layer velocity [m/s] */
+#define DZ          200             /* Height interval for deriving a profile [m] */
+#define HMAX        12000           /* Maximum height of the profile [m] */
+#define NODATA_VP   -9999           /* Nodata value used in the vertical profile */
+#define UNDETECT_VP -9999           /* Undetect value used in the vertical profile */
+#define GAIN_VP     1.0             /* Gain value for the fields UWND and VWND */
+#define OFFSET_VP   0.0             /* Offset value for the fields UWND and VWND */
+
 /**
  * Defines a weather radar wind product generator
  */
