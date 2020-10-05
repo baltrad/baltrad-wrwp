@@ -64,6 +64,7 @@ import sys
 import fnmatch
 import xml.etree.cElementTree as ET    
 from rave_defines import CENTER_ID, GAIN, OFFSET
+from rave_defines import RAVE_IO_DEFAULT_VERSION
 
 logger = rave_pgf_logger.create_logger()
 
@@ -226,6 +227,7 @@ def generate(files, arguments):
     ios = _raveio.new()
     ios.object = profile
     ios.filename = outfile
+    ios.version = RAVE_IO_DEFAULT_VERSION
     ios.save()
     logger.debug("Finished generating vertical profile from polar volume %s"%files[0])
     return outfile
