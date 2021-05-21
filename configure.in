@@ -490,12 +490,20 @@ CBLAS_INC_DIR=
 CBLAS_LIB_DIR=
 GOT_CBLAS_INC=no
 GOT_CBLAS_LIB=no
-AC_ARG_WITH(cblas, [ --with-cblas=ROOT or INC,LIB       Use the cblas library],
+CBLAS_LIBNAME=cblas
+
+AC_ARG_WITH(cblas, [ --with-cblas=ROOT or INC,LIB       Use the cblas library and if it can't be found, try atlas ],
             ,withval=yes)
 case $withval in
   yes)
     AC_CHECK_HEADERS(cblas.h,GOT_CBLAS_INC=yes)
     AC_CHECK_LIB(cblas,cblas_sasum,GOT_CBLAS_LIB=yes)
+    if [[ "$GOT_CBLAS_LIB" != "yes" ]]; then
+      AC_CHECK_LIB(tatlas, cblas_sasum, GOT_CBLAS_LIB=yes)
+      if [[ "$GOT_CBLAS_LIB" != "yes" ]]; then
+        CBLAS_LIBNAME=tatlas
+      fi
+    fi
     ;;
   no)
     AC_MSG_ERROR(You cannot remove dependencies to CBLAS);
@@ -532,8 +540,25 @@ case $withval in
         else
           LDFLAGS="$saved_LDFLAGS"
         fi
+        if [[ "$GOT_CBLAS_LIB" != "yes" ]]; then
+          # Try atlas
+          LDFLAGS="$LDFLAGS -L$cblas_lib"
+          AC_CHECK_LIB(tatlas, cblas_sasum, GOT_CBLAS_LIB=yes)
+          if [[ "$GOT_CBLAS_LIB" = "yes" ]]; then
+            CBLAS_LIB_DIR="-L$cblas_lib"
+            CBLAS_LIBNAME=tatlas
+          else
+            LDFLAGS="$saved_LDFLAGS"
+          fi
+        fi          
       else
         AC_CHECK_LIB(cblas, cblas_sasum, GOT_CBLAS_LIB=yes)
+        if [[ "$GOT_CBLAS_LIB" != "yes" ]]; then
+          AC_CHECK_LIB(tatlas, cblas_sasum, GOT_CBLAS_LIB=yes)
+          if [[ "$GOT_CBLAS_LIB" != "yes" ]]; then
+            CBLAS_LIBNAME=tatlas
+          fi
+        fi
       fi
     else
       AC_MSG_ERROR("Odd argument passed for CBLAS")
@@ -547,7 +572,7 @@ fi
 
 dnl LAPACKE needs CBLAS
 LDFLAGS="$CBLAS_LIB_DIR $LDFLAGS"
-LIBS="-lcblas $LIBS"
+LIBS="-l$CBLAS_LIBNAME $LIBS"
 
 dnl Now we need to locate lapack that just is a library
 LAPACK_LIB_DIR=
@@ -656,6 +681,7 @@ AC_SUBST(CBLAS_LIB_DIR)
 AC_SUBST(LAPACK_LIB_DIR)
 AC_SUBST(LAPACKE_INCLUDE_DIR)
 AC_SUBST(LAPACKE_LIB_DIR)
+AC_SUBST(CBLAS_LIBNAME)
 
 AC_SUBST(RAVE_ROOT_DIR)
 AC_SUBST(RAVE_INCLUDE_FLAG)

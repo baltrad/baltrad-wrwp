@@ -31,7 +31,7 @@ CFLAGS= -I../lib -I. $(LAPACKE_INCLUDE_DIR) $(CBLAS_INCLUDE_DIR) $(RAVE_MODULE_P
 # Linker flags
 LDFLAGS= -L../lib -L. $(BLAS_LIB_DIR) $(CBLAS_LIB_DIR) $(LAPACK_LIB_DIR) $(LAPACKE_LIB_DIR) $(RAVE_MODULE_LDFLAGS) 
 
-LIBRARIES= -lwrwp $(RAVE_MODULE_PYLIBRARIES) -llapacke -llapack -lcblas -lblas $(FORTRAN_CLINK_LIBS) -lm
+LIBRARIES= -lwrwp $(RAVE_MODULE_PYLIBRARIES) -llapacke -llapack -l$(CBLAS_LIBNAME) -lblas $(FORTRAN_CLINK_LIBS) -lm
 
 # --------------------------------------------------------------------
 # Fixed definitions

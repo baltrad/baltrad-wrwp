@@ -638,6 +638,7 @@ RAVECC
 RAVE_LIB_FLAG
 RAVE_INCLUDE_FLAG
 RAVE_ROOT_DIR
+CBLAS_LIBNAME
 LAPACKE_LIB_DIR
 LAPACKE_INCLUDE_DIR
 LAPACK_LIB_DIR
@@ -680,6 +681,7 @@ infodir
 docdir
 oldincludedir
 includedir
+runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -757,6 +759,7 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
+runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE_TARNAME}'
@@ -1009,6 +1012,15 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
+  -runstatedir | --runstatedir | --runstatedi | --runstated \
+  | --runstate | --runstat | --runsta | --runst | --runs \
+  | --run | --ru | --r)
+    ac_prev=runstatedir ;;
+  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
+  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
+  | --run=* | --ru=* | --r=*)
+    runstatedir=$ac_optarg ;;
+
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1146,7 +1158,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir
+		libdir localedir mandir runstatedir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1299,6 +1311,7 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
+  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -1329,7 +1342,7 @@ Optional Packages:
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-rave=ROOT  The RAVE root installation directory
  --with-blas=LIBDIR       Use the blas library
- --with-cblas=ROOT or INC,LIB       Use the cblas library
+ --with-cblas=ROOT or INC,LIB       Use the cblas library and if it can't be found, try atlas
  --with-lapack=LIBDIR       Use the lapack library
   --with-lapacke=ROOT or INC,LIB       Use the lapacke library
 
@@ -4110,6 +4123,8 @@ CBLAS_INC_DIR=
 CBLAS_LIB_DIR=
 GOT_CBLAS_INC=no
 GOT_CBLAS_LIB=no
+CBLAS_LIBNAME=cblas
+
 
 # Check whether --with-cblas was given.
 if test "${with_cblas+set}" = set; then :
@@ -4432,6 +4447,51 @@ if test "x$ac_cv_lib_cblas_cblas_sasum" = xyes; then :
   GOT_CBLAS_LIB=yes
 fi
 
+    if [ "$GOT_CBLAS_LIB" != "yes" ]; then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for cblas_sasum in -ltatlas" >&5
+$as_echo_n "checking for cblas_sasum in -ltatlas... " >&6; }
+if ${ac_cv_lib_tatlas_cblas_sasum+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ltatlas  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char cblas_sasum ();
+int
+main ()
+{
+return cblas_sasum ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_tatlas_cblas_sasum=yes
+else
+  ac_cv_lib_tatlas_cblas_sasum=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tatlas_cblas_sasum" >&5
+$as_echo "$ac_cv_lib_tatlas_cblas_sasum" >&6; }
+if test "x$ac_cv_lib_tatlas_cblas_sasum" = xyes; then :
+  GOT_CBLAS_LIB=yes
+fi
+
+      if [ "$GOT_CBLAS_LIB" != "yes" ]; then
+        CBLAS_LIBNAME=tatlas
+      fi
+    fi
     ;;
   no)
     as_fn_error $? "You cannot remove dependencies to CBLAS" "$LINENO" 5;
@@ -4529,6 +4589,56 @@ fi
         else
           LDFLAGS="$saved_LDFLAGS"
         fi
+        if [ "$GOT_CBLAS_LIB" != "yes" ]; then
+          # Try atlas
+          LDFLAGS="$LDFLAGS -L$cblas_lib"
+          { $as_echo "$as_me:${as_lineno-$LINENO}: checking for cblas_sasum in -ltatlas" >&5
+$as_echo_n "checking for cblas_sasum in -ltatlas... " >&6; }
+if ${ac_cv_lib_tatlas_cblas_sasum+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ltatlas  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char cblas_sasum ();
+int
+main ()
+{
+return cblas_sasum ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_tatlas_cblas_sasum=yes
+else
+  ac_cv_lib_tatlas_cblas_sasum=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tatlas_cblas_sasum" >&5
+$as_echo "$ac_cv_lib_tatlas_cblas_sasum" >&6; }
+if test "x$ac_cv_lib_tatlas_cblas_sasum" = xyes; then :
+  GOT_CBLAS_LIB=yes
+fi
+
+          if [ "$GOT_CBLAS_LIB" = "yes" ]; then
+            CBLAS_LIB_DIR="-L$cblas_lib"
+            CBLAS_LIBNAME=tatlas
+          else
+            LDFLAGS="$saved_LDFLAGS"
+          fi
+        fi
       else
         { $as_echo "$as_me:${as_lineno-$LINENO}: checking for cblas_sasum in -lcblas" >&5
 $as_echo_n "checking for cblas_sasum in -lcblas... " >&6; }
@@ -4570,6 +4680,51 @@ if test "x$ac_cv_lib_cblas_cblas_sasum" = xyes; then :
   GOT_CBLAS_LIB=yes
 fi
 
+        if [ "$GOT_CBLAS_LIB" != "yes" ]; then
+          { $as_echo "$as_me:${as_lineno-$LINENO}: checking for cblas_sasum in -ltatlas" >&5
+$as_echo_n "checking for cblas_sasum in -ltatlas... " >&6; }
+if ${ac_cv_lib_tatlas_cblas_sasum+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ltatlas  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char cblas_sasum ();
+int
+main ()
+{
+return cblas_sasum ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_tatlas_cblas_sasum=yes
+else
+  ac_cv_lib_tatlas_cblas_sasum=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tatlas_cblas_sasum" >&5
+$as_echo "$ac_cv_lib_tatlas_cblas_sasum" >&6; }
+if test "x$ac_cv_lib_tatlas_cblas_sasum" = xyes; then :
+  GOT_CBLAS_LIB=yes
+fi
+
+          if [ "$GOT_CBLAS_LIB" != "yes" ]; then
+            CBLAS_LIBNAME=tatlas
+          fi
+        fi
       fi
     else
       as_fn_error $? "\"Odd argument passed for CBLAS\"" "$LINENO" 5
@@ -4582,7 +4737,7 @@ if [ "$GOT_CBLAS_INC" = "no" -o "$GOT_CBLAS_LIB" = "no" ]; then
 fi
 
 LDFLAGS="$CBLAS_LIB_DIR $LDFLAGS"
-LIBS="-lcblas $LIBS"
+LIBS="-l$CBLAS_LIBNAME $LIBS"
 
 LAPACK_LIB_DIR=
 GOT_LAPACK_LIB=no
@@ -4956,6 +5111,7 @@ esac
 if [ "$GOT_LAPACKE_INC" = "no" -o "$GOT_LAPACKE_LIB" = "no" ]; then
   as_fn_error $? "\"Could not successfully find the lapacke library\"" "$LINENO" 5
 fi
+
 
 
 
