@@ -337,7 +337,7 @@ if __name__ == "__main__":
 
   # Set up the logging system
   logger = logging.getLogger('wrwp_log')
-  handler = logging.FileHandler(DEFAULTOUT + '/wrwp_log.log')
+  handler = logging.FileHandler(options.outpath + '/wrwp_log.log')
   formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
   handler.setFormatter(formatter)
   logger.addHandler(handler)
