@@ -54,8 +54,8 @@ along with baltrad-wrwp.  If not, see <http://www.gnu.org/licenses/>.
 /*Definition of standard parameters.                                          */
 /******************************************************************************/
 
-#define DEG2RAD     DEG_TO_RAD      /* Degrees to radians. From PROJ.4 */
-#define RAD2DEG     RAD_TO_DEG      /* Radians to degrees. From PROJ.4 */
+#define DEG2RAD     .017453292519943296      /* Degrees to radians. From PROJ.4 */
+#define RAD2DEG     57.295779513082321      /* Radians to degrees. From PROJ.4 */
 #define NOR         40000           /* Number of rows in matrix A used in the computation */
 #define NOC         3               /* Number of columns in matrix A used in the computation */
 #define NRHS        1               /* Number of right-hand sides; that is, the number of columns in matrix B used in the computation */
