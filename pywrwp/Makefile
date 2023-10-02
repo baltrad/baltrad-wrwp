@@ -63,6 +63,7 @@ install:
 	@mkdir -p "${DESTDIR}${prefix}/share/wrwp/pywrwp"
 	@cp -v -f $(TARGET) "${DESTDIR}${prefix}/share/wrwp/pywrwp/"
 	@cp -v -f *.py "${DESTDIR}${prefix}/share/wrwp/pywrwp/"
+	@-mkdir -p ${DESTDIR}$(SITEPACK_PYTHON)
 	@-echo "$(prefix)/share/wrwp/pywrwp" > "${DESTDIR}$(SITEPACK_PYTHON)/pywrwp.pth"
 
 
