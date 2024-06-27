@@ -21,6 +21,7 @@ along with baltrad-wrwp.  If not, see <http://www.gnu.org/licenses/>.
  * @author Anders Henja, SMHI
  * @date 2013-09-17
  */
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include "pywrwp_compat.h"
 #include <Python.h>
 #include <math.h>
