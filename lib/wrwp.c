@@ -38,7 +38,10 @@ along with baltrad-wrwp.  If not, see <http://www.gnu.org/licenses/>.
  * The majority of the parameters put in the file wrwp.h have been moved into a separate file (wrwp_config.xml) 
  * so that they can be changed without compiling the code. The plugin has been modified so it reads the xml-file 
  * the relevant parameters not set from the web-GUI and a newly created python command-line tool (wrwp_main.py 
- * instead of wrwp_main.c) also reads the xml-file and sets the relevant parameters. */
+ * instead of wrwp_main.c) also reads the xml-file and sets the relevant parameters.
+ *
+ * @author Hidde Leijnse, KNMI
+ * @date 2025-05-22, inserted KNMI algorithms for screening data going into the wind profile fit.*/
 
 #include "wrwp.h"
 #include "vertical_profile.h"
@@ -65,6 +68,13 @@ struct _Wrwp_t
   int nmin_ref; /**< Minimum sample size for refl. */
   double emin; /**< Minimum elevation angle [deg] */
   double emax; /**< Maximum elevation angle [deg] */
+  double econdmax; /**< Conditional maximum elevation angle [deg] */
+  double hthr; /**< Height threshold below which conditional elevantion angle is employed [m] */
+  double nimin; /**< Minimum Nyquist interval for use of scan [m/s] */
+  int ngapbin; /**< Number of azimuth sector bins for detecting gaps */
+  int ngapmin; /**< Minimum number of samples within an azimuth sector bin */
+  int maxnstd; /**< Maximum number standard deviations of residuals to include samples */
+  double maxvdiff; /**< Maximum deviation of a samples to the fit [m/s] */
   double ff_max; /**<Maximum accepted value for ff (calculated layer velocity) [m/s]*/
   double vmin; /**< Radial velocity threshold [m/s] */
   double nodata_VP; /**< Nodata value for vertical profile */
@@ -87,6 +97,13 @@ static int Wrwp_constructor(RaveCoreObject* obj)
   wrwp->nmin_ref = NMIN_REF;
   wrwp->emin = EMIN;
   wrwp->emax = EMAX;
+  wrwp->econdmax = ECONDMAX;
+  wrwp->hthr = HTHR;
+  wrwp->nimin = NIMIN;
+  wrwp->ngapbin = NGAPBIN;
+  wrwp->ngapmin = NGAPMIN;
+  wrwp->maxnstd = MAXNSTD;
+  wrwp->maxvdiff = MAXVDIFF;
   wrwp->vmin = VMIN;
   wrwp->ff_max = FF_MAX;
   wrwp->dz = DZ;
@@ -263,6 +280,62 @@ done:
   return result;
 }
 
+
+int WrwpInternal_getDoubleAttribute(RaveCoreObject* obj, const char* aname, double* tmpd) {
+    RaveAttribute_t* attr = NULL;
+    int ret = 0;
+
+    if (RAVE_OBJECT_CHECK_TYPE(obj, &PolarVolume_TYPE)) {
+        attr = PolarVolume_getAttribute((PolarVolume_t*)obj, aname);
+    } else if (RAVE_OBJECT_CHECK_TYPE(obj, &PolarScan_TYPE)) {
+        attr = PolarScan_getAttribute((PolarScan_t*)obj, aname);
+    } else if (RAVE_OBJECT_CHECK_TYPE(obj, &PolarScanParam_TYPE)) {
+        attr = PolarScanParam_getAttribute((PolarScanParam_t*)obj, aname);
+    }
+    if (attr != NULL) {
+        ret = RaveAttribute_getDouble(attr, tmpd);
+    }
+    RAVE_OBJECT_RELEASE(attr);
+    return ret;
+}
+
+
+/**
+ * This function detects gaps in the azimuthal distribution. For this, a histogram of the azimuths of the available
+ * velocity data is made using 'nGapBin' azimuth bins. Subsequently, the number of data points per azimuth
+ * bin is determined. When two consecutive azimuth bins contain less than 'nGapMin' points, a gap is detected.
+ * @param[in] az - the azimuths for which there is valid data
+ * @param[in] Npnt - the number of azimuths in az
+ * @param[in] nGapBin - the number of azimuth bins to use for detecting gaps (bin size is hence (360 / nGapBin)
+ * @param[in] nGapMin - the minimum number of valid points within a bin necessary to avoid returning gap = 1
+ * @returns true (1) when a gap is detected and false (0) when no gap is found.
+ */
+int WrwpInternal_azimuthGap(double *az, int Npnt, int nGapBin, int nGapMin)
+{
+    int gap, Nsector[nGapBin], n, m;
+    
+    /*Initialize histogram.*/
+    gap = 0;
+    for (m = 0; m < nGapBin; m++) Nsector[m] = 0;
+    
+    /*Collect histogram.*/
+    for (n = 0; n < Npnt; n++)
+    {
+        m = (az[n] * RAD2DEG * nGapBin) / 360.0;
+        Nsector[m % nGapBin]++;
+    }
+    
+    /*Detect gaps.*/
+    gap = 0;
+    for (m = 0; m < nGapBin; m++)
+    {
+        if ((Nsector[m] < nGapMin) && (Nsector[(m + 1) % nGapBin] < nGapMin)) gap = 1;
+    }
+    
+    return gap;
+}
+
+
 /*@} End of Private functions */
 
 /*@{ Interface functions */
@@ -389,6 +462,7 @@ int Wrwp_getNMIN_REF(Wrwp_t* self)
   RAVE_ASSERT((self != NULL), "self == NULL");
   return self->nmin_ref;
 }
+
 void Wrwp_setEMIN(Wrwp_t* self, double emin)
 {
   RAVE_ASSERT((self != NULL), "self == NULL");
@@ -411,6 +485,90 @@ double Wrwp_getEMAX(Wrwp_t* self)
 {
   RAVE_ASSERT((self != NULL), "self == NULL");
   return self->emax;
+}
+
+void Wrwp_setECONDMAX(Wrwp_t* self, double econdmax)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  self->econdmax = econdmax;
+}
+
+double Wrwp_getECONDMAX(Wrwp_t* self)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  return self->econdmax;
+}
+
+void Wrwp_setHTHR(Wrwp_t* self, double hthr)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  self->hthr = hthr;
+}
+
+double Wrwp_getHTHR(Wrwp_t* self)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  return self->hthr;
+}
+
+void Wrwp_setNIMIN(Wrwp_t* self, double nimin)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  self->nimin = nimin;
+}
+
+double Wrwp_getNIMIN(Wrwp_t* self)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  return self->nimin;
+}
+
+void Wrwp_setNGAPBIN(Wrwp_t* self, int ngapbin)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  self->ngapbin = ngapbin;
+}
+
+int Wrwp_getNGAPBIN(Wrwp_t* self)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  return self->ngapbin;
+}
+
+void Wrwp_setNGAPMIN(Wrwp_t* self, int ngapmin)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  self->ngapmin = ngapmin;
+}
+
+int Wrwp_getNGAPMIN(Wrwp_t* self)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  return self->ngapmin;
+}
+
+void Wrwp_setMAXNSTD(Wrwp_t* self, int maxnstd)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  self->maxnstd = maxnstd;
+}
+
+int Wrwp_getMAXNSTD(Wrwp_t* self)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  return self->maxnstd;
+}
+
+void Wrwp_setMAXVDIFF(Wrwp_t* self, double maxvdiff)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  self->maxvdiff = maxvdiff;
+}
+
+double Wrwp_getMAXVDIFF(Wrwp_t* self)
+{
+  RAVE_ASSERT((self != NULL), "self == NULL");
+  return self->maxvdiff;
 }
 
 void Wrwp_setFF_MAX(Wrwp_t* self, double ff_max)
@@ -438,15 +596,15 @@ double Wrwp_getVMIN(Wrwp_t* self)
 }
 
 /* Main code for vertical profile generation */
-VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char* fieldsToGenerate)
+VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char* wrwpMethod, const char* fieldsToGenerate)
 {
   VerticalProfile_t* result = NULL;
   PolarNavigator_t* polnav = NULL;
   int nrhs = NRHS, lda = LDA, ldb = LDB;
-  int nscans = 0, nv, nz, i, iz, is, ib, ir;
+  int nscans = 0, nv, nz, i, iz, is, ib, ir, n, m, p;
   int firstInit;
 
-  double gain, offset, nodata, undetect, val;
+  double gain, offset, nodata, undetect, val, NI, chisq, Vdifmax;
   double d, h;
   double alpha, beta, gamma, vvel, vdir, vstd, zsum, zmean, zstd;
   double centerOfLayer=0.0, u_wnd_comp=0.0, v_wnd_comp=0.0, vdir_rad=0.0;
@@ -540,13 +698,17 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
   int ntask = 0;
 
   // Loop over the atmospheric layers
+    // NOTE: looping over all height layers, and then looping over all elevations, azimuths, and ranges may be inefficient in terms of CPU use. With a little more memory use, this could be reduced. Not sure if this is at all relevant, but it could be an option to look into if necessary.
   for (iz = 0; iz < self->hmax; iz += self->dz) {
     /* allocate memory and initialize with zeros */
     double *A = RAVE_CALLOC((size_t)(NOR*NOC), sizeof (double));
+    double *Atmp = RAVE_CALLOC((size_t)(NOR*NOC), sizeof (double));
     double *b = RAVE_CALLOC((size_t)(NOR), sizeof (double));
     double *v = RAVE_CALLOC((size_t)(NOR), sizeof (double));
+    double *vfit = RAVE_CALLOC((size_t)(NOR), sizeof (double));
     double *z = RAVE_CALLOC((size_t)(NOR), sizeof (double));
     double *az = RAVE_CALLOC((size_t)(NOR), sizeof (double));
+    double *el = RAVE_CALLOC((size_t)(NOR), sizeof (double));
 
     vdir = -9999.0;
     vvel = -9999.0;
@@ -650,33 +812,50 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
             offset = PolarScanParam_getOffset(vrad);
             nodata = PolarScanParam_getNodata(vrad);
             undetect = PolarScanParam_getUndetect(vrad);
-
+            
+            // KNMI algorithm: check for minimum Nyquist interval
+            NI = fabs(offset);
+            if (strcmp(wrwpMethod, "KNMI") == 0) {
+                if (!WrwpInternal_getDoubleAttribute((RaveCoreObject*)scan, "how/NI", &NI)) {
+                    if (!WrwpInternal_getDoubleAttribute((RaveCoreObject*)inobj, "how/NI", &NI)) {
+                        NI = fabs(offset);
+                    }
+                }
+            }
+            if ((strcmp(wrwpMethod, "KNMI") != 0) || (NI >= self->nimin)) {
             for (ir = 0; ir < nrays; ir++) {
               for (ib = 0; ib < nbins; ib++) {
                 PolarNavigator_reToDh(polnav, (ib+0.5)*rscale, elangleForThisScan, &d, &h);
                 PolarScanParam_getValue(vrad, ib, ir, &val);
-                if ((h >= iz) &&
+                if (((strcmp(wrwpMethod, "KNMI") != 0) || (elangleForThisScan * RAD2DEG <= self->econdmax) || (h >= self->hthr)) && ((h >= iz) &&
                     (h < iz + self->dz) &&
                     (d >= self->dmin) &&
                     (d <= self->dmax) &&
                     (val != nodata) &&
                     (val != undetect) &&
-                    (abs(offset + gain * val) >= self->vmin)) {
+                    (abs(offset + gain * val) >= self->vmin))) {
                   if (nv < NOR) {
                     *(v+nv) = offset+gain*val;
                     *(az+nv) = 360./nrays*ir*DEG2RAD;
+                    *(el+nv) = elangleForThisScan;
                     *(A+nv*NOC) = sin(*(az+nv));
                     *(A+nv*NOC+1) = cos(*(az+nv));
                     *(A+nv*NOC+2) = 1;
+                    if (strcmp(wrwpMethod, "KNMI") == 0) {
+                        *(A+nv*NOC) *= cos(elangleForThisScan);
+                        *(A+nv*NOC+1) *= cos(elangleForThisScan);
+                        *(A+nv*NOC+2) *= sin(elangleForThisScan);
+                    }
                     *(b+nv) = *(v+nv);
                     nv = nv+1;
                   } else {
-                    RAVE_ERROR0("NV to great, ignoring value");
+                    RAVE_ERROR0("NV too great, ignoring value");
                   }
                 }
               }
             }
-            RAVE_OBJECT_RELEASE(vrad);          
+            }
+            RAVE_OBJECT_RELEASE(vrad);
           }
 
           // reflectivity scans
@@ -702,7 +881,7 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
                     zsum = zsum + *(z+nz);
                     nz = nz+1;
                   } else {
-                    RAVE_ERROR0("NZ to great, ignoring value");
+                    RAVE_ERROR0("NZ too great, ignoring value");
                   }
                 }
               }
@@ -719,13 +898,19 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
     if (countAcceptedScans == 0) { /* Emergency exit if no accepted scans were found */
       result = NULL;               /* If this is the case, we don't bother with checking */
       RAVE_FREE(A);                /* the same thing for the other atmospheric layers, */
-      RAVE_FREE(b);                /* we skip it and return 0 directly */
+      RAVE_FREE(Atmp);             /* we skip it and return 0 directly */
+      RAVE_FREE(b);
       RAVE_FREE(v);
+      RAVE_FREE(vfit);
       RAVE_FREE(z);
       RAVE_FREE(az);
+      RAVE_FREE(el);
       RAVE_INFO0("Could not find any acceptable scans, dropping out...");
       goto done;
-    } 
+    }
+      
+    // KNMI processing: check for azimuth gaps
+    if (strcmp(wrwpMethod, "KNMI") == 0) if (WrwpInternal_azimuthGap(az, nv, self->ngapbin, self->ngapmin)) nv = 0;
 
     /* Perform radial wind calculations and reflectivity calculations */
     if (nv>3) {
@@ -737,10 +922,65 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
       //          falling rain drops                                  *
       //***************************************************************
 
-      /* QR decomposition */
-      /*info = */
-      LAPACKE_dgels(LAPACK_ROW_MAJOR, 'N', NOR, NOC, nrhs, A, lda, b, ldb);
-
+        
+        if (strcmp(wrwpMethod, "KNMI") == 0) {
+            // Do first fit
+            for (i = 0; i < (nv * NOC); i++) Atmp[i] = A[i];
+            LAPACKE_dgels(LAPACK_ROW_MAJOR, 'N', nv, NOC, nrhs, Atmp, lda, b, ldb);
+            
+            // Compute vfit and chi-squared
+            chisq = 0.0;
+            for (i = 0; i < nv; i++) {
+                vfit[i] = b[0] * sin(az[i]) * cos(el[i]) + b[1] * cos(az[i]) * cos(el[i]) + b[2] * sin(el[i]);
+                chisq += (v[i] - vfit[i]) * (v[i] - vfit[i]);
+            }
+            chisq /= (nv - NOC);
+            
+            // Remove outiers
+            if (self->maxnstd > 0) Vdifmax = self->maxnstd * sqrt(chisq);
+            else Vdifmax = self->maxvdiff;
+            n = 0;
+            for (m = 0; m < nv; m++)
+            {
+                if (fabs(v[m] - vfit[m]) < Vdifmax)
+                {
+                    v[n] = v[m];
+                    b[n] = v[m];
+                    az[n] = az[m];
+                    el[n] = el[m];
+                    for (p = 0; p < NOC; p++) Atmp[p + NOC * n] = A[p + NOC * m];
+                    n++;
+                }
+            }
+            nv = n;
+            
+            if (nv > 3) {
+                // Check for azimuth gaps and redo fitting if no gaps are there
+                if (WrwpInternal_azimuthGap(az, nv, self->ngapbin, self->ngapmin)) nv = 0;
+                else {
+                    LAPACKE_dgels(LAPACK_ROW_MAJOR, 'N', nv, NOC, nrhs, Atmp, lda, b, ldb);
+                    chisq = 0.0;
+                    for (i = 0; i < nv; i++) {
+                        vfit[i] = b[0] * sin(az[i]) * cos(el[i]) + b[1] * cos(az[i]) * cos(el[i]) + b[2] * sin(el[i]);
+                        chisq += (v[i] - vfit[i]) * (v[i] - vfit[i]);
+                    }
+                    chisq /= (nv - NOC);
+                }
+            }
+        } else {
+            /* QR decomposition */
+            /*info = */
+            LAPACKE_dgels(LAPACK_ROW_MAJOR, 'N', NOR, NOC, nrhs, A, lda, b, ldb);
+            chisq = 0.0;
+            for (i = 0; i < nv; i++) {
+                vfit[i] = b[0] * sin(az[i]) + b[1] * cos(az[i]) + b[2];
+                chisq += (v[i] - vfit[i]) * (v[i] - vfit[i]);
+            }
+            chisq /= nv;
+        }
+    }
+        
+    if (nv > 3) {
       /* parameter of the wind model */
       alpha = sqrt(pow(*(b),2) + pow(*(b+1),2));
       beta = atan2(*(b+1), *b);
@@ -762,11 +1002,8 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
         vdir = vdir - 360;
       }
 
-      /* RMSE of the wind velocity */
-      for (i=0; i<nv; i++) {
-        vstd = vstd + pow (*(v+i) - (gamma+alpha*sin(*(az+i)+beta)),2);
-      }
-      vstd = sqrt (vstd/nv);
+      /* RMSE of the wind velocity*/
+      vstd = sqrt (chisq);
       
       /* Calculate the x-component (East) and y-component (North) of the wind 
          velocity using the wind direction and the magnitude of the wind velocity */
@@ -791,7 +1028,7 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
 
     /* If the number of points for wind is smaller than the threshold nmin_wnd or the calculated wind velocity is larger than */
     /* threshold ff_max, set nodata, otherwise set values. */
-    if ((nv < self->nmin_wnd) || (vvel > self->ff_max)) {
+    if (((strcmp(wrwpMethod, "KNMI") != 0) && ((nv < self->nmin_wnd) || (vvel > self->ff_max))) || ((strcmp(wrwpMethod, "KNMI") == 0) && (nv <= 3))) {
       if (nv_field != NULL) RaveField_setValue(nv_field, 0, yindex, -1.0); /* nodata for counter */
       if (uwnd_field != NULL) RaveField_setValue(uwnd_field, 0, yindex, self->nodata_VP);
       if (vwnd_field != NULL) RaveField_setValue(vwnd_field, 0, yindex, self->nodata_VP);
@@ -819,10 +1056,14 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
     }
 
     RAVE_FREE(A);
+    RAVE_FREE(Atmp);
     RAVE_FREE(b);
     RAVE_FREE(v);
+    RAVE_FREE(vfit);
     RAVE_FREE(z);
     RAVE_FREE(az);
+    RAVE_FREE(el);
+
 
     yindex++;   
   }

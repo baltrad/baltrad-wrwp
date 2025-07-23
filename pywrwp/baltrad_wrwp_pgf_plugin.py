@@ -120,6 +120,7 @@ def generate(files, arguments):
   args = arglist2dict(arguments)
   wrwp = _wrwp.new()
   fields = None
+  method = None
 
   # Since the config can be placed in a few different places, we first check current directory, then the environment variable WRWP_CONFIG_FILE, if it doesn't exist or point to non-existing
   # config file. We try a file located relative to this script (WRWP_CONFIG_FILE) defined above. Finally we try anything under /etc/baltrad.
@@ -155,6 +156,20 @@ def generate(files, arguments):
       wrwp.dmax = strToNumber(param.find('value').text)
     if param.get('name') == 'DMIN':
       wrwp.dmin = strToNumber(param.find('value').text)
+    if param.get('name') == 'ECONDMAX':
+      wrwp.econdmax = strToNumber(param.find('value').text)
+    if param.get('name') == 'HTHR':
+      wrwp.hthr = strToNumber(param.find('value').text)
+    if param.get('name') == 'NIMIN':
+      wrwp.nimin = strToNumber(param.find('value').text)
+    if param.get('name') == 'NGAPBIN':
+      wrwp.ngapbin = strToNumber(param.find('value').text)
+    if param.get('name') == 'NGAPMIN':
+      wrwp.ngapmin = strToNumber(param.find('value').text)
+    if param.get('name') == 'MAXNSTD':
+      wrwp.maxnstd = strToNumber(param.find('value').text)
+    if param.get('name') == 'MAXVDIFF':
+      wrwp.maxvdiff = strToNumber(param.find('value').text)
     if param.get('name') == 'VMIN':
       wrwp.vmin = strToNumber(param.find('value').text)
     if param.get('name') == 'NMIN_WND':
@@ -176,10 +191,12 @@ def generate(files, arguments):
     if param.get('name') == 'OFFSET_VP':
       wrwp.offset_VP = strToNumber(param.find('value').text)
 
+    if param.get('name') == 'METHOD':
+      WRWPMETHOD = param.find('value').text
     if param.get('name') == 'QUANTITIES':
       QUANTITIES = param.find('value').text
 
-    # Parameter values from the web-GUI, they overwright the ones above.
+    # Parameter values from the web-GUI, they overwrite the ones above.
     if "interval" in args.keys():
       wrwp.dz = strToNumber(args["interval"])
     if "maxheight" in args.keys():
@@ -192,6 +209,20 @@ def generate(files, arguments):
       wrwp.emin = strToNumber(args["minelevationangle"])
     if "maxelevationangle" in args.keys():
       wrwp.emax = strToNumber(args["maxelevationangle"])
+    if "maxconditionalelevationangle" in args.keys():
+      wrwp.econdmax = strToNumber(args["maxconditionalelevationangle"])
+    if "heightthreshold" in args.keys():
+      wrwp.hthr = strToNumber(args["heightthreshold"])
+    if "minnyquistinterval" in args.keys():
+      wrwp.nimin = strToNumber(args["minnyquistinterval"])
+    if "numbergapazimuthbins" in args.keys():
+      wrwp.ngapbin = strToNumber(args["numbergapazimuthbins"])
+    if "minnumbergapsamples" in args.keys():
+      wrwp.ngapmin = strToNumber(args["minnumbergapsamples"])
+    if "maxnumberstandarddeviation" in args.keys():
+      wrwp.maxnstd = strToNumber(args["maxnumberstandarddeviation"])
+    if "maxvelocitydifference" in args.keys():
+      wrwp.maxvdiff = strToNumber(args["maxvelocitydifference"])
     if "velocitythreshold" in args.keys():
       wrwp.vmin = strToNumber(args["velocitythreshold"])
     if "maxvelocitythreshold" in args.keys():
@@ -200,9 +231,13 @@ def generate(files, arguments):
       wrwp.nmin_ref = strToNumber(args["minsamplesizereflectivity"])
     if "minsamplesizewind" in args.keys():
       wrwp.nmin_wnd = strToNumber(args["minsamplesizewind"])
+    if "method" in args.keys():
+      method = args["method"]
     if "fields" in args.keys():
       fields = args["fields"]
 
+    if method == None:
+      method = WRWPMETHOD # If no method is given in the web-GUI, we build wrwp with the default method
     if fields == None:
       fields = QUANTITIES # If no fields are given in the web-GUI, we build wrwp with all the supported quantities
     
@@ -222,7 +257,7 @@ def generate(files, arguments):
     raise AttributeError("Must call plugin with a polar volume")
 
   try:
-    profile = wrwp.generate(obj, fields)  
+    profile = wrwp.generate(obj, method, fields)
     fileno, outfile = rave_tempfile.mktemp(suffix='.h5', close="True")
     ios = _raveio.new()
     ios.object = profile

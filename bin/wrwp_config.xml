@@ -1,5 +1,9 @@
 <?xml version="1.0"?>
 <wrwp-params>
+    <param name="METHOD">
+        <description>"WRWP extraction method (SMHI/KNMI)"</description>
+        <value>SMHI</value>
+    </param>
     <param name="QUANTITIES">
         <description>"Currently supported fields"</description>
         <value>NV,HGHT,UWND,VWND,ff,ff_dev,dd,DBZH,DBZH_dev,NZ</value>
@@ -25,8 +29,36 @@
         <value>0.5</value>
     </param>
     <param name="EMAX">
-        <description>Minimum elevation angle [deg]</description>
+        <description>Maximum elevation angle [deg]</description>
         <value>45.0</value>
+    </param>
+    <param name="ECONDMAX">
+        <description>KNMI method: Conditional maximum elevation angle [deg]</description>
+        <value>9.5</value>
+    </param>
+    <param name="HTHR">
+        <description>KNMI method: Height threshold below which conditional maximum elevation angle is employed [m]</description>
+        <value>2000.0</value>
+    </param>
+    <param name="NIMIN">
+        <description>KNMI method: Minimum Nyquist interval for use of scan [m/s]</description>
+        <value>10.0</value>
+    </param>
+    <param name="NGAPBIN">
+        <description>KNMI method: Number of azimuth sector bins for detecting gaps</description>
+        <value>8</value>
+    </param>
+    <param name="NGAPMIN">
+        <description>KNMI method: Minimum number of samples within an azimuth sector bin</description>
+        <value>5</value>
+    </param>
+    <param name="MAXNSTD">
+        <description>KNMI method: Maximum number standard deviations of residuals to include samples</description>
+        <value>0</value>
+    </param>
+    <param name="MAXVDIFF">
+        <description>KNMI method: Maximum deviation of a samples to the fit [m/s]</description>
+        <value>10.0</value>
     </param>
     <param name="VMIN">
         <description>Radial velocity threshold [m/s]</description>

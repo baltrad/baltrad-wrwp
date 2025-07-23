@@ -150,6 +150,7 @@ def main(options):
     # Define and load the wrwp object
     wrwp = _wrwp.new()
     fields = None
+    method = None
 
     wrwp.dmin = options.dmin
     wrwp.dmax = options.dmax
@@ -157,6 +158,13 @@ def main(options):
     wrwp.nmin_ref = options.nmin_ref
     wrwp.emin = options.emin
     wrwp.emax = options.emax
+    wrwp.econdmax = options.econdmax
+    wrwp.hthr = options.hthr
+    wrwp.nimin = options.nimin
+    wrwp.ngapbin = options.ngapbin
+    wrwp.ngapmin = options.ngapmin
+    wrwp.maxnstd = options.maxnstd
+    wrwp.maxvdiff= options.maxvdiff
     wrwp.vmin = options.vmin
     wrwp.ff_max = options.ff_max
     wrwp.dz = options.dz
@@ -168,11 +176,13 @@ def main(options):
 
     if options.quantities != None:
       fields = options.quantities
+    if options.wrwpmethod != None:
+      method = options.wrwpmethod
  
     exestart = time.time()
 
     try:
-      profile = wrwp.generate(obj, fields)
+      profile = wrwp.generate(obj, method, fields)
 
       # Extract parameters for use in filename construction if the user has not set a filename explicitly.
       product_vp = profile.product
@@ -257,6 +267,20 @@ if __name__ == "__main__":
       EMIN = param.find('value').text
     if param.get('name') == 'EMAX':
       EMAX = param.find('value').text
+    if param.get('name') == 'ECONDMAX':
+      ECONDMAX = param.find('value').text
+    if param.get('name') == 'HTHR':
+      HTHR = param.find('value').text
+    if param.get('name') == 'NIMIN':
+      NIMIN = param.find('value').text
+    if param.get('name') == 'NGAPBIN':
+      NGAPBIN = param.find('value').text
+    if param.get('name') == 'NGAPMIN':
+      NGAPMIN = param.find('value').text
+    if param.get('name') == 'MAXNSTD':
+      MAXNSTD = param.find('value').text
+    if param.get('name') == 'MAXVDIFF':
+      MAXVDIFF = param.find('value').text
     if param.get('name') == 'VMIN':
       VMIN = param.find('value').text
     if param.get('name') == 'FF_MAX':
@@ -275,10 +299,13 @@ if __name__ == "__main__":
       OFFSET_VP = param.find('value').text
     if param.get('name') == 'QUANTITIES':
       QUANTITIES = param.find('value').text
+    if param.get('name') == 'METHOD':
+      WRWPMETHOD = param.find('value').text
 
     QUANTITIES_DEF = 'NV,HGHT,UWND,VWND,ff,ff_dev,dd,DBZH,DBZH_dev,NZ'
+    WRWPMETHOD_DEF = 'SMHI'
 
-  usage = "usage: %wrwp_main --infile <infile/s> --outpath <path to profiles> [args] [h]"
+  usage = "usage: %wrwp_main --infiles <infile/s> --outpath <path to profiles> [args] [h]"
   usage += "\nGenerates weather radar wind profiles directly from polar volumes."
   usage += "\nIf a ver2.1 input volume is used, the output vertical profile is ver2.1."
   usage += "\nIf a ver2.2 input volume is used, the output vertical profile can be either ver2.1 and ver2.2."
@@ -301,12 +328,20 @@ if __name__ == "__main__":
   parser.add_option("--quantities", dest = "quantities", type = "string", default = QUANTITIES_DEF, help = "Comma separated list of " + \
                     "quantities. Currently supported quantities are NV,HGHT,UWND,VWND,ff,ff_dev,dd,DBZH,DBZH_dev,NZ and are given " + \
                     "in the wrwp_config.xml file. Default if no quantities are given is UWND, VWND, HGHT, ff, ff_dev, dd, NV, DBZH, DBZH_dev and NZ.")
+  parser.add_option("--wrwpmethod", dest = "wrwpmethod", type = "string", default = WRWPMETHOD_DEF, help = "Method used for deriving WRWP. Currently SMHI and KNMI are supported. Defaults to SMHI")
   parser.add_option("--dmin", dest = "dmin", type = "int", default = DMIN, help="Minimum distance for deriving a profile [m], default 5000. Note: integer.")
   parser.add_option("--dmax", dest = "dmax", type = "int", default = DMAX, help="Maximum distance for deriving a profile [m], default 25000. Note: integer.")
   parser.add_option("--nmin_wnd", dest = "nmin_wnd", type = "int", default = NMIN_WND, help="Minimum sample size for wind, default 40. Note: integer.")
   parser.add_option("--nmin_ref", dest = "nmin_ref", type = "int", default = NMIN_REF, help="Minimum sample size for reflectivity, default 40. Note: integer.")
   parser.add_option("--emin", dest = "emin", type = "float", default = EMIN, help="Minimum elevation angle [deg], default 4.0.")
   parser.add_option("--emax", dest = "emax", type = "float", default = EMAX, help="Maximum elevation angle [deg], default 45.0.")
+  parser.add_option("--econdmax", dest = "econdmax", type = "float", default = ECONDMAX, help="KNMI method: Conditional maximum elevation angle [deg], default 9.5.")
+  parser.add_option("--hthr", dest = "hthr", type = "float", default = HTHR, help="KNMI method: Height threshold below which conditional maximum elevation angle is employed [m], default 2000.0.")
+  parser.add_option("--nimin", dest = "nimin", type = "float", default = NIMIN, help="KNMI method: Minimum Nyquist interval for use of scan [m/s], default 10.0.")
+  parser.add_option("--ngapbin", dest = "ngapbin", type = "int", default = NGAPBIN, help="KNMI method: Number of azimuth sector bins for detecting gaps, default 8.")
+  parser.add_option("--ngapmin", dest = "ngapmin", type = "int", default = NGAPMIN, help="KNMI method: Minimum number of samples within an azimuth sector bin, default 5.")
+  parser.add_option("--maxnstd", dest = "maxnstd", type = "int", default = MAXNSTD, help="KNMI method: Maximum number standard deviations of residuals to include samples, default 0.")
+  parser.add_option("--maxvdiff", dest = "maxvdiff", type = "float", default = MAXVDIFF, help="KNMI method: Maximum deviation of a sample to the fit [m/s], default 10.0.")
   parser.add_option("--vmin", dest = "vmin", type = "float", default = VMIN, help="Radial velocity threshold [m/s], default 2.0")
   parser.add_option("--ff_max", dest = "ff_max", type = "float", default = FF_MAX, help="Maximum allowed calculated " + \
                     "layer velocity [m/s], default 60.0. Layer velocity greater than ff_max will be set as nodata. " + \
@@ -376,10 +411,18 @@ if __name__ == "__main__":
       refl_flag = True
       wnd_flag = True
 
+    print("WRWP method used: %s"%options.wrwpmethod)
     print("Minimum distance for vertical profile, dmin: %s [m]"%options.dmin)
     print("Maximum distance for vertical profile, dmax: %s [m]"%options.dmax)
     print("Minimum elevation angle used in vertical profile, emin: %s [deg]"%options.emin)
     print("Maximum elevation angle used in the vertical profile, emax: %s [deg]"%options.emax)
+    if options.wrwpmethod == 'KNMI':
+      print("Conditional maximum elevation angle used in the vertical profile, econdmax: %s [deg]"%options.econdmax)
+      print("Height threshold below which conditional maximum elevation angle is employed in the vertical profile, hthr: %s [m]"%options.hthr)
+      print("Number of azimuth sector bins for detecting gaps used in the vertical profile, ngapbin: %s"%options.ngapbin)
+      print("Minimum number of samples within an azimuth sector bin used in the vertical profile, ngapmin: %s"%options.ngapmin)
+      print("Maximum number standard deviations of residuals to include samples used in the vertical profile, maxnstd: %s"%options.maxnstd)
+      print("Maximum deviation of a sample to the fit used in the vertical profile, maxvdiff: %s [m/s]"%options.maxvdiff)
     print("Height interval for vertical profile, dz: %s [m]"%options.dz)
     print("Maximum height for vertical profile, hmax: %s [m]"%options.hmax)
 
@@ -387,6 +430,7 @@ if __name__ == "__main__":
       print("Minimum sample size required for wind in the vertical profile, nmin_wnd: %s"%options.nmin_wnd)
       print("Radial velocity threshold for vertical profile, vmin: %s [m/s]"%options.vmin)
       print("Maximum allowed layer velocity for vertical profile, ff_max: %s [m/s]"%options.ff_max)
+      print("Minimum Nyquist interval used in the vertical profile, emax: %s [m/s]"%options.nimin)
     if refl_flag:
       print("Minimum sample size required for reflectivity in the vertical profile, nmin_ref: %s"%options.nmin_ref)
 

@@ -155,8 +155,9 @@ static PyObject* _pywrwp_generate(PyWrwp* self, PyObject* args)
   PyVerticalProfile* pyvp = NULL;
   VerticalProfile_t* vp = NULL;
   char* fieldsToGenerate = NULL;
+  char* wrwpMethod = NULL;
 
-  if(!PyArg_ParseTuple(args, "O|z", &obj, &fieldsToGenerate)) {
+  if(!PyArg_ParseTuple(args, "O|zz", &obj, &wrwpMethod, &fieldsToGenerate)) {
     return NULL;
   }
 
@@ -164,7 +165,7 @@ static PyObject* _pywrwp_generate(PyWrwp* self, PyObject* args)
     raiseException_returnNULL(PyExc_AttributeError, "In argument must be a polar volume");
   }
 
-  vp = Wrwp_generate(self->wrwp, ((PyPolarVolume*)obj)->pvol, fieldsToGenerate);
+  vp = Wrwp_generate(self->wrwp, ((PyPolarVolume*)obj)->pvol, wrwpMethod, fieldsToGenerate);
 
   if (vp == NULL) {
     raiseException_gotoTag(done, PyExc_RuntimeError, "Failed to generate vertical profile");
@@ -190,6 +191,13 @@ static struct PyMethodDef _pywrwp_methods[] =
   {"dmax", NULL, METH_VARARGS},
   {"emin", NULL, METH_VARARGS},
   {"emax", NULL, METH_VARARGS},
+  {"econdmax", NULL, METH_VARARGS},
+  {"hthr", NULL, METH_VARARGS},
+  {"nimin", NULL, METH_VARARGS},
+  {"ngapbin", NULL, METH_VARARGS},
+  {"ngapmin", NULL, METH_VARARGS},
+  {"maxnstd", NULL, METH_VARARGS},
+  {"maxvdiff", NULL, METH_VARARGS},
   {"vmin", NULL, METH_VARARGS},
   {"nmin_wnd", NULL, METH_VARARGS},
   {"nmin_ref", NULL, METH_VARARGS},
@@ -199,9 +207,10 @@ static struct PyMethodDef _pywrwp_methods[] =
   {"gain_VP", NULL, METH_VARARGS},
   {"offset_VP", NULL, METH_VARARGS},
   {"generate", (PyCFunction)_pywrwp_generate, 1,
-    "generate(pvol,fields) -> vp\n\n"
+    "generate(pvol,method,fields) -> vp\n\n"
     "Function for deriving wind and reflectivity profiles from polar volume data\n\n"
     "pvol   - A polar volume\n"
+    "method - Method used for deriving WRWP. Currently SMHI and KNMI are supported. Defaults to SMHI if None.\n"
     "fields - A comma separated list of fields to be generated. Currently, the following fields can be generated\n"
     "         NV,HGHT,UWND,VWND,ff,ff_dev,dd,DBZH,DBZH_dev,NZ. If None, then a default setup will be generated."
   },
@@ -226,6 +235,20 @@ static PyObject* _pywrwp_getattro(PyWrwp* self, PyObject* name)
     return PyFloat_FromDouble(Wrwp_getEMIN(self->wrwp));
   }  else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("emax", name) == 0) {
     return PyFloat_FromDouble(Wrwp_getEMAX(self->wrwp));
+  }  else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("econdmax", name) == 0) {
+    return PyFloat_FromDouble(Wrwp_getECONDMAX(self->wrwp));
+  }  else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("hthr", name) == 0) {
+    return PyFloat_FromDouble(Wrwp_getHTHR(self->wrwp));
+  }  else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("nimin", name) == 0) {
+    return PyFloat_FromDouble(Wrwp_getNIMIN(self->wrwp));
+  }  else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("ngapbin", name) == 0) {
+    return PyInt_FromLong(Wrwp_getNGAPBIN(self->wrwp));
+  }  else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("ngapmin", name) == 0) {
+    return PyInt_FromLong(Wrwp_getNGAPMIN(self->wrwp));
+  }  else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("maxnstd", name) == 0) {
+    return PyInt_FromLong(Wrwp_getMAXNSTD(self->wrwp));
+  }  else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("maxvdiff", name) == 0) {
+    return PyFloat_FromDouble(Wrwp_getMAXVDIFF(self->wrwp));
   } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("vmin", name) == 0) {
     return PyFloat_FromDouble(Wrwp_getVMIN(self->wrwp));
   } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("nmin_wnd", name) == 0) {
@@ -294,6 +317,56 @@ static int _pywrwp_setattro(PyWrwp* self, PyObject* name, PyObject* val)
       Wrwp_setEMAX(self->wrwp, (double)PyInt_AsLong(val));
     } else {
       raiseException_gotoTag(done, PyExc_TypeError, "emax must be an integer or a float");
+    }
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("econdmax", name) == 0) {
+    if (PyFloat_Check(val)) {
+      Wrwp_setECONDMAX(self->wrwp, PyFloat_AsDouble(val));
+    } else if (PyInt_Check(val)) {
+      Wrwp_setECONDMAX(self->wrwp, (double)PyInt_AsLong(val));
+    } else {
+      raiseException_gotoTag(done, PyExc_TypeError, "econdmax must be an integer or a float");
+    }
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("hthr", name) == 0) {
+    if (PyFloat_Check(val)) {
+      Wrwp_setHTHR(self->wrwp, PyFloat_AsDouble(val));
+    } else if (PyInt_Check(val)) {
+      Wrwp_setHTHR(self->wrwp, (double)PyInt_AsLong(val));
+    } else {
+      raiseException_gotoTag(done, PyExc_TypeError, "hthr must be an integer or a float");
+    }
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("nimin", name) == 0) {
+    if (PyFloat_Check(val)) {
+      Wrwp_setNIMIN(self->wrwp, PyFloat_AsDouble(val));
+    } else if (PyInt_Check(val)) {
+      Wrwp_setNIMIN(self->wrwp, (double)PyInt_AsLong(val));
+    } else {
+      raiseException_gotoTag(done, PyExc_TypeError, "nimin must be an integer or a float");
+    }
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("ngapbin", name) == 0) {
+    if (PyInt_Check(val)) {
+      Wrwp_setNGAPBIN(self->wrwp, PyInt_AsLong(val));
+    } else {
+      raiseException_gotoTag(done, PyExc_TypeError, "ngapbin must be an integer");
+    }
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("ngapmin", name) == 0) {
+    if (PyInt_Check(val)) {
+      Wrwp_setNGAPMIN(self->wrwp, PyInt_AsLong(val));
+    } else {
+      raiseException_gotoTag(done, PyExc_TypeError, "ngapmin must be an integer");
+    }
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("maxnstd", name) == 0) {
+    if (PyInt_Check(val)) {
+      Wrwp_setMAXNSTD(self->wrwp, PyInt_AsLong(val));
+    } else {
+      raiseException_gotoTag(done, PyExc_TypeError, "maxnstd must be an integer");
+    }
+  } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("maxvdiff", name) == 0) {
+    if (PyFloat_Check(val)) {
+      Wrwp_setMAXVDIFF(self->wrwp, PyFloat_AsDouble(val));
+    } else if (PyInt_Check(val)) {
+      Wrwp_setMAXVDIFF(self->wrwp, (double)PyInt_AsLong(val));
+    } else {
+      raiseException_gotoTag(done, PyExc_TypeError, "maxvdiff must be an integer or a float");
     }
   } else if (PY_COMPARE_STRING_WITH_ATTRO_NAME("vmin", name) == 0) {
     if (PyFloat_Check(val)) {
@@ -370,6 +443,13 @@ PyDoc_STRVAR(_pywrwp_type_doc,
   "nmin_ref   - Minimum sample size reflectivity, default 40\n"
   "emin       - Minimum elevation angle [deg], default 0.5\n"
   "emax       - Maximum elevation angle [deg], default 45.0\n"
+  "econdmax   - KNMI method: Conditional maximum elevation angle [deg], default 9.5\n"
+  "hthr       - KNMI method: Height threshold below which conditional maximum elevation angle is employed [m], default 2000.0\n"
+  "nimin      - KNMI method: Minimum Nyquist interval for use of scan [m/s], default 10.0\n"
+  "ngapbin    - KNMI method: Number of azimuth sector bins for detecting gaps, default 8\n"
+  "ngapmin    - KNMI method: Minimum number of samples within an azimuth sector bin, default 5\n"
+  "maxnstd    - KNMI method: Maximum number standard deviations of residuals to include samples, default 0\n"
+  "maxvdiff   - KNMI method: Maximum deviation of a sample to the fit [m/s], default 10.0\n"
   "vmin       - Radial velocity threshold [m/s], default 2.0\n"
   "ff_max     - Maximum allowed layer velocity [m/s], default 60.0\n"
   "dz         - Height interval for deriving a profile [m], default 200\n"

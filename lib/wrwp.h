@@ -71,6 +71,13 @@ along with baltrad-wrwp.  If not, see <http://www.gnu.org/licenses/>.
 #define NMIN_REF    40              /* Minimum sample size reflectivity */
 #define EMIN        0.5             /* Minimum elevation angle [deg] */
 #define EMAX        45.0            /* Maximum elevation angle [deg] */
+#define ECONDMAX    9.5             /* KNMI method: Conditional maximum elevation angle [deg]*/
+#define HTHR        2000.0          /* KNMI method: Height threshold below which conditional maximum elevation angle is employed [m]*/
+#define NIMIN       10.0            /* KNMI method: Minimum Nyquist interval for use of scan [m/s]*/
+#define NGAPBIN     8               /* KNMI method: Number of azimuth sector bins for detecting gaps*/
+#define NGAPMIN     5               /* KNMI method: Minimum number of samples within an azimuth sector bin*/
+#define MAXNSTD     0               /* KNMI method: Maximum number standard deviations of residuals to include samples*/
+#define MAXVDIFF    10.0            /* KNMI method: Maximum deviation of a samples to the fit [m/s]*/
 #define VMIN        2.0             /* Radial velocity threshold [m/s] */
 #define FF_MAX      60.0            /* Maximum allowed layer velocity [m/s] */
 #define DZ          200             /* Height interval for deriving a profile [m] */
@@ -273,6 +280,104 @@ void Wrwp_setEMAX(Wrwp_t* self, double emax);
 double Wrwp_getEMAX(Wrwp_t* self);
 
 /**
+ * Sets conditional maximum elevation angle [deg]
+ * @param[in] self - self
+ * @param[in] econdmax -conditional maximum elevation angle [deg]
+ */
+void Wrwp_setECONDMAX(Wrwp_t* self, double econdmax);
+
+/**
+ * Returns conditional maximum elevation angle [deg]
+ * @param[in] self - self
+ * @return Conditional maximum elevation angle [deg] (default ECONDMAX)
+ */
+double Wrwp_getECONDMAX(Wrwp_t* self);
+
+/**
+ * Sets height threshold [m]
+ * @param[in] self - self
+ * @param[in] hthr - height threshold [m]
+ */
+void Wrwp_setHTHR(Wrwp_t* self, double hthr);
+
+/**
+ * Returns height threshold [m]
+ * @param[in] self - self
+ * @return Height threshold [m] (default HTHR)
+ */
+double Wrwp_getHTHR(Wrwp_t* self);
+
+/**
+ * Sets minimum Nyquist interval [m/s]
+ * @param[in] self - self
+ * @param[in] nimin - minimum Nyquist interval [m/s]
+ */
+void Wrwp_setNIMIN(Wrwp_t* self, double nimin);
+
+/**
+ * Returns minimum Nyquist interval [m/s]
+ * @param[in] self - self
+ * @return Minimum Nyquist interval [m/s] (default NIMIN)
+ */
+double Wrwp_getNIMIN(Wrwp_t* self);
+
+/**
+ * Sets number of azimth bins for gap analyses
+ * @param[in] self - self
+ * @param[in] ngapbin - Number of azimuth bins for gap analyses
+ */
+void Wrwp_setNGAPBIN(Wrwp_t* self, int ngapbin);
+
+/**
+ * Returns number of azimuth bins for gap analyses
+ * @param[in] self - self
+ * @return Number of azimuth bins for gap analyses (default NGAPBIN)
+ */
+int Wrwp_getNGAPBIN(Wrwp_t* self);
+
+/**
+ * Sets minimum number of azimth samples for gap analyses
+ * @param[in] self - self
+ * @param[in] ngapmin - Minimum number of azimuth samples for gap analyses
+ */
+void Wrwp_setNGAPMIN(Wrwp_t* self, int ngapmin);
+
+/**
+ * Returns minimum number of azimuth samples for gap analyses
+ * @param[in] self - self
+ * @return Minimum number of azimuth samples for gap analyses (default NGAPMIN)
+ */
+int Wrwp_getNGAPMIN(Wrwp_t* self);
+
+/**
+ * Sets maximum number of standard deviations of residuals
+ * @param[in] self - self
+ * @param[in] maxnstd - Maximum number of standard deviations of residuals
+ */
+void Wrwp_setMAXNSTD(Wrwp_t* self, int maxnstd);
+
+/**
+ * Returns maximum number of standard deviations of residuals
+ * @param[in] self - self
+ * @return Maximum number of standard deviations of residuals (default MAXNSTD)
+ */
+int Wrwp_getMAXNSTD(Wrwp_t* self);
+
+/**
+ * Sets maximum deviation of samples to the fit [m/s]
+ * @param[in] self - self
+ * @param[in] maxvdiff - maximum deviation of samples to the fit [m/s]
+ */
+void Wrwp_setMAXVDIFF(Wrwp_t* self, double maxvdiff);
+
+/**
+ * Returns maximum deviation of samples to the fit [m/s]
+ * @param[in] self - self
+ * @return Maximum deviation of samples to the fit [m/s] (default MAXVDIFF)
+ */
+double Wrwp_getMAXVDIFF(Wrwp_t* self);
+
+/**
  * Sets radial velocity threshold [m/s]
  * @param[in] self - self
  * @param[in] vmin - radial velocity threshold [m/s]
@@ -290,10 +395,12 @@ double Wrwp_getVMIN(Wrwp_t* self);
  * Function for deriving wind and reflectivity profiles from polar volume data
  * @param[in] self - self
  * @param[in] iobj - input volume
+ * @param[in] wrwpMethod - method to use for wrwp extraction. Supported methods are "SMHI"
+ * and "KNMI". If NULL, then defaults to "SMHI".
  * @param[in] fieldsToGenerate - an comma-separated list of quantities. If NULL, then default
  * behaviour is to add ff,ff_dev,dd,dbzh and dbzh_dev
  * @returns the wind profile
  */
-VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char* fieldsToGenerate);
+VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char* wrwpMethod, const char* fieldsToGenerate);
 
 #endif
