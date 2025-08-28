@@ -63,6 +63,20 @@ for param in root.findall('param'):
     EMIN = strToNumber(param.find('value').text)
   if param.get('name') == 'EMAX':
     EMAX = strToNumber(param.find('value').text)
+  if param.get('name') == 'ECONDMAX':
+    ECONDMAX = strToNumber(param.find('value').text)
+  if param.get('name') == 'HTHR':
+    HTHR = strToNumber(param.find('value').text)
+  if param.get('name') == 'NIMIN':
+    NIMIN = strToNumber(param.find('value').text)
+  if param.get('name') == 'NGAPBIN':
+    NGAPBIN = strToNumber(param.find('value').text)
+  if param.get('name') == 'NGAPMIN':
+    NGAPMIN = strToNumber(param.find('value').text)
+  if param.get('name') == 'MAXNSTD':
+    MAXNSTD = strToNumber(param.find('value').text)
+  if param.get('name') == 'MAXVDIFF':
+    MAXVDIFF = strToNumber(param.find('value').text)
   if param.get('name') == 'VMIN':
     VMIN = strToNumber(param.find('value').text)
   if param.get('name') == 'FF_MAX':
@@ -79,6 +93,8 @@ for param in root.findall('param'):
     GAIN_VP = strToNumber(param.find('value').text)
   if param.get('name') == 'OFFSET_VP':
     OFFSET_VP = strToNumber(param.find('value').text)
+  if param.get('name') == 'METHOD':
+    WRWPMETHOD = param.find('value').text
   if param.get('name') == 'QUANTITIES':
     QUANTITIES = param.find('value').text
 
@@ -93,6 +109,13 @@ def load_wrwp_defaults_to_obj():
   wrwp.nmin_wnd = NMIN_WND
   wrwp.nmin_ref = NMIN_REF
   wrwp.emax = EMAX
+  wrwp.econdmax = ECONDMAX
+  wrwp.hthr = HTHR
+  wrwp.nimin = NIMIN
+  wrwp.ngapbin = NGAPBIN
+  wrwp.ngapmin = NGAPMIN
+  wrwp.maxnstd = MAXNSTD
+  wrwp.maxvdiff= MAXVDIFF
   wrwp.vmin = VMIN
   wrwp.ff_max = FF_MAX
   wrwp.nodata_VP = NODATA_VP
@@ -126,6 +149,13 @@ class WrwpTest(unittest.TestCase):
     self.assertEqual(25000, obj.dmax)
     self.assertAlmostEqual(0.5, obj.emin, 4)
     self.assertAlmostEqual(45.0, obj.emax, 4)
+    self.assertAlmostEqual(9.5, obj.econdmax, 4)
+    self.assertAlmostEqual(2000.0, obj.hthr, 4)
+    self.assertAlmostEqual(10.0, obj.nimin, 4)
+    self.assertEqual(8, obj.ngapbin)
+    self.assertEqual(5, obj.ngapmin)
+    self.assertEqual(0, obj.maxnstd)
+    self.assertAlmostEqual(10.0, obj.maxvdiff, 4)
     self.assertAlmostEqual(2.0, obj.vmin, 4)
     self.assertAlmostEqual(60.0, obj.ff_max, 4)
     self.assertEqual(40, obj.nmin_wnd, 4)
@@ -195,6 +225,74 @@ class WrwpTest(unittest.TestCase):
     obj.emax = 4
     self.assertAlmostEqual(4.0, obj.emax, 4)
 
+  def test_econdmax(self):
+    obj = _wrwp.new()
+    self.assertAlmostEqual(9.5, obj.econdmax, 4)
+    obj.econdmax = 45.0
+    self.assertAlmostEqual(45.0, obj.econdmax, 4)
+    obj.econdmax = 4
+    self.assertAlmostEqual(4.0, obj.econdmax, 4)
+
+  def test_hthr(self):
+    obj = _wrwp.new()
+    self.assertAlmostEqual(2000.0, obj.hthr, 4)
+    obj.hthr = 1000.0
+    self.assertAlmostEqual(1000.0, obj.hthr, 4)
+    obj.hthr = 50
+    self.assertAlmostEqual(50.0, obj.hthr, 4)
+
+  def test_nimin(self):
+    obj = _wrwp.new()
+    self.assertAlmostEqual(10.0, obj.nimin, 4)
+    obj.nimin = 5.0
+    self.assertAlmostEqual(5.0, obj.nimin, 4)
+    obj.nimin = 1
+    self.assertAlmostEqual(1.0, obj.nimin, 4)
+    
+  def test_ngapbin(self):
+    obj = _wrwp.new()
+    self.assertEqual(8, obj.ngapbin)
+    obj.ngapbin = 100
+    self.assertEqual(100, obj.ngapbin)
+    try:
+      obj.ngapbin = 200.0
+      self.fail("Expected TypeError")
+    except TypeError:
+      pass
+    self.assertEqual(100, obj.ngapbin)
+    
+  def test_ngapmin(self):
+    obj = _wrwp.new()
+    self.assertEqual(8, obj.ngapmin)
+    obj.ngapmin = 100
+    self.assertEqual(100, obj.ngapmin)
+    try:
+      obj.ngapmin = 200.0
+      self.fail("Expected TypeError")
+    except TypeError:
+      pass
+    self.assertEqual(100, obj.ngapmin)
+    
+  def test_maxnstd(self):
+    obj = _wrwp.new()
+    self.assertEqual(0, obj.maxnstd)
+    obj.maxnstd = 100
+    self.assertEqual(100, obj.maxnstd)
+    try:
+      obj.maxnstd = 200.0
+      self.fail("Expected TypeError")
+    except TypeError:
+      pass
+    self.assertEqual(100, obj.maxnstd)
+
+  def test_maxvdiff(self):
+    obj = _wrwp.new()
+    self.assertAlmostEqual(10.0, obj.maxvdiff, 4)
+    obj.maxvdiff = 5.0
+    self.assertAlmostEqual(5.0, obj.maxvdiff, 4)
+    obj.maxvdiff = 1
+    self.assertAlmostEqual(1.0, obj.maxvdiff, 4)
+
   def test_vmin(self):
     obj = _wrwp.new()
     self.assertAlmostEqual(2.0, obj.vmin, 4)
@@ -235,7 +333,8 @@ class WrwpTest(unittest.TestCase):
     fields = None
     
     fields = QUANTITIES
-    vp = wrwp.generate(pvol, fields)
+    method = WRWPMETHOD
+    vp = wrwp.generate(pvol, method, fields)
     
     uwnd = vp.getUWND()
     vwnd = vp.getVWND()
@@ -265,6 +364,39 @@ class WrwpTest(unittest.TestCase):
     self.assertEqual(pvol.source, vp.source)
     self.assertEqual(pvol.date, vp.date)
     self.assertEqual(pvol.time, vp.time)
+        
+    method = 'KNMI'
+    vp_KNMI = wrwp.generate(pvol, method, fields)
+    
+    uwnd_KNMI = vp_KNMI.getUWND()
+    vwnd_KNMI = vp_KNMI.getVWND()
+    hght_KNMI = vp_KNMI.getHGHT()
+    nv_KNMI = vp_KNMI.getNV()
+    
+    self.assertEqual(1, uwnd_KNMI.xsize)
+    self.assertEqual(10, uwnd_KNMI.ysize)
+    self.assertEqual("UWND", uwnd_KNMI.getAttribute("what/quantity"))
+
+    self.assertEqual(1, vwnd_KNMI.xsize)
+    self.assertEqual(10, vwnd_KNMI.ysize)
+    self.assertEqual("VWND", vwnd_KNMI.getAttribute("what/quantity"))
+
+    self.assertEqual(1, hght_KNMI.xsize)
+    self.assertEqual(10, hght_KNMI.ysize)
+    self.assertEqual("HGHT", hght_KNMI.getAttribute("what/quantity"))
+    
+    self.assertEqual(1, nv_KNMI.xsize)
+    self.assertEqual(10, nv_KNMI.ysize)
+    self.assertEqual("n", nv_KNMI.getAttribute("what/quantity"))
+
+    self.assertEqual(10,vp_KNMI.getLevels())
+    self.assertEqual(200, vp_KNMI.interval)
+    self.assertEqual(0, vp_KNMI.minheight)
+    self.assertEqual(2000, vp_KNMI.maxheight)
+    self.assertEqual(pvol.source, vp_KNMI.source)
+    self.assertEqual(pvol.date, vp_KNMI.date)
+    self.assertEqual(pvol.time, vp_KNMI.time)
+    
 
   def test_generate_from_default(self):
     pvol = _raveio.open(self.FIXTURE).object
@@ -272,8 +404,9 @@ class WrwpTest(unittest.TestCase):
     fields = None
 
     exceptionTest = False
-
-    vp = wrwp.generate(pvol, fields)
+    
+    method = WRWPMETHOD
+    vp = wrwp.generate(pvol, method, fields)
 
     ff = vp.getFF()
     dd = vp.getDD()
@@ -326,8 +459,9 @@ class WrwpTest(unittest.TestCase):
     wrwp.hmax = 2000
     wrwp.dz = 200
     fields = None
-    
-    vp = wrwp.generate(pvol, fields)
+        
+    method = WRWPMETHOD
+    vp = wrwp.generate(pvol, method, fields)
 
     robj = _raveio.new()
     robj.object = vp
@@ -341,7 +475,8 @@ class WrwpTest(unittest.TestCase):
     fields = None
     
     fields = QUANTITIES
-    vp = wrwp.generate(pvol, fields)
+    method = WRWPMETHOD
+    vp = wrwp.generate(pvol, method, fields)
     
     uwnd = vp.getUWND()
     vwnd = vp.getVWND()
@@ -407,7 +542,8 @@ class WrwpTest(unittest.TestCase):
 
     try:
       fields = QUANTITIES
-      vp = wrwp.generate(pvol, fields)
+      method = WRWPMETHOD
+      vp = wrwp.generate(pvol, method, fields)
 
       uwnd = vp.getUWND()
       vwnd = vp.getVWND()
@@ -476,7 +612,8 @@ class WrwpTest(unittest.TestCase):
 
     try:
       fields = QUANTITIES
-      vp = wrwp.generate(pvol, fields)
+      method = WRWPMETHOD
+      vp = wrwp.generate(pvol, method, fields)
 
       uwnd = vp.getUWND()
       vwnd = vp.getVWND()
