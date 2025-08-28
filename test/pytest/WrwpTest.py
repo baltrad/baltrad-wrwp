@@ -263,7 +263,7 @@ class WrwpTest(unittest.TestCase):
     
   def test_ngapmin(self):
     obj = _wrwp.new()
-    self.assertEqual(8, obj.ngapmin)
+    self.assertEqual(5, obj.ngapmin)
     obj.ngapmin = 100
     self.assertEqual(100, obj.ngapmin)
     try:
