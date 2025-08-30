@@ -125,6 +125,8 @@ def load_wrwp_defaults_to_obj():
 
   return wrwp
 
+import _rave
+
 class WrwpTest(unittest.TestCase):
   FIXTURE = "fixtures/pvol_seang_20090501T120000Z.h5"
   FIXTURE2 = "fixtures/selul_pvol_20151114T1615Z.h5"
@@ -133,6 +135,7 @@ class WrwpTest(unittest.TestCase):
   
   def setUp(self):
     _helpers.triggerMemoryStatus()
+    _rave.setTrackObjectCreation(True)
 
   def tearDown(self):
     pass

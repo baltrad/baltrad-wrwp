@@ -282,21 +282,21 @@ done:
 
 
 int WrwpInternal_getDoubleAttribute(RaveCoreObject* obj, const char* aname, double* tmpd) {
-    RaveAttribute_t* attr = NULL;
-    int ret = 0;
+  RaveAttribute_t* attr = NULL;
+  int ret = 0;
 
-    if (RAVE_OBJECT_CHECK_TYPE(obj, &PolarVolume_TYPE)) {
-        attr = PolarVolume_getAttribute((PolarVolume_t*)obj, aname);
-    } else if (RAVE_OBJECT_CHECK_TYPE(obj, &PolarScan_TYPE)) {
-        attr = PolarScan_getAttribute((PolarScan_t*)obj, aname);
-    } else if (RAVE_OBJECT_CHECK_TYPE(obj, &PolarScanParam_TYPE)) {
-        attr = PolarScanParam_getAttribute((PolarScanParam_t*)obj, aname);
-    }
-    if (attr != NULL) {
-        ret = RaveAttribute_getDouble(attr, tmpd);
-    }
-    RAVE_OBJECT_RELEASE(attr);
-    return ret;
+  if (RAVE_OBJECT_CHECK_TYPE(obj, &PolarVolume_TYPE)) {
+    attr = PolarVolume_getAttribute((PolarVolume_t*)obj, aname);
+  } else if (RAVE_OBJECT_CHECK_TYPE(obj, &PolarScan_TYPE)) {
+    attr = PolarScan_getAttribute((PolarScan_t*)obj, aname);
+  } else if (RAVE_OBJECT_CHECK_TYPE(obj, &PolarScanParam_TYPE)) {
+    attr = PolarScanParam_getAttribute((PolarScanParam_t*)obj, aname);
+  }
+  if (attr != NULL) {
+    ret = RaveAttribute_getDouble(attr, tmpd);
+  }
+  RAVE_OBJECT_RELEASE(attr);
+  return ret;
 }
 
 
@@ -312,27 +312,29 @@ int WrwpInternal_getDoubleAttribute(RaveCoreObject* obj, const char* aname, doub
  */
 int WrwpInternal_azimuthGap(double *az, int Npnt, int nGapBin, int nGapMin)
 {
-    int gap, Nsector[nGapBin], n, m;
+  int gap, Nsector[nGapBin], n, m;
     
-    /*Initialize histogram.*/
-    gap = 0;
-    for (m = 0; m < nGapBin; m++) Nsector[m] = 0;
+  /*Initialize histogram.*/
+  gap = 0;
+  for (m = 0; m < nGapBin; m++) {
+    Nsector[m] = 0;
+  }
     
-    /*Collect histogram.*/
-    for (n = 0; n < Npnt; n++)
-    {
-        m = (az[n] * RAD2DEG * nGapBin) / 360.0;
-        Nsector[m % nGapBin]++;
+  /*Collect histogram.*/
+  for (n = 0; n < Npnt; n++) {
+    m = (az[n] * RAD2DEG * nGapBin) / 360.0;
+    Nsector[m % nGapBin]++;
+  }
+    
+  /*Detect gaps.*/
+  gap = 0;
+  for (m = 0; m < nGapBin; m++) {
+    if ((Nsector[m] < nGapMin) && (Nsector[(m + 1) % nGapBin] < nGapMin)) {
+      gap = 1;
     }
+  }
     
-    /*Detect gaps.*/
-    gap = 0;
-    for (m = 0; m < nGapBin; m++)
-    {
-        if ((Nsector[m] < nGapMin) && (Nsector[(m + 1) % nGapBin] < nGapMin)) gap = 1;
-    }
-    
-    return gap;
+  return gap;
 }
 
 
@@ -606,7 +608,7 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
 
   double gain, offset, nodata, undetect, val, NI, chisq, Vdifmax;
   double d, h;
-  double alpha, beta, gamma, vvel, vdir, vstd, zsum, zmean, zstd;
+  double alpha, beta, /*gamma,*/ vvel, vdir, vstd, zsum, zmean, zstd;
   double centerOfLayer=0.0, u_wnd_comp=0.0, v_wnd_comp=0.0, vdir_rad=0.0;
   int ysize = 0, yindex = 0;
   int countAcceptedScans = 0; /* counter for accepted scans i.e. scans with elangle >= selected
@@ -816,44 +818,44 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
             // KNMI algorithm: check for minimum Nyquist interval
             NI = fabs(offset);
             if (strcmp(wrwpMethod, "KNMI") == 0) {
-                if (!WrwpInternal_getDoubleAttribute((RaveCoreObject*)scan, "how/NI", &NI)) {
-                    if (!WrwpInternal_getDoubleAttribute((RaveCoreObject*)inobj, "how/NI", &NI)) {
-                        NI = fabs(offset);
-                    }
-                }
-            }
-            if ((strcmp(wrwpMethod, "KNMI") != 0) || (NI >= self->nimin)) {
-            for (ir = 0; ir < nrays; ir++) {
-              for (ib = 0; ib < nbins; ib++) {
-                PolarNavigator_reToDh(polnav, (ib+0.5)*rscale, elangleForThisScan, &d, &h);
-                PolarScanParam_getValue(vrad, ib, ir, &val);
-                if (((strcmp(wrwpMethod, "KNMI") != 0) || (elangleForThisScan * RAD2DEG <= self->econdmax) || (h >= self->hthr)) && ((h >= iz) &&
-                    (h < iz + self->dz) &&
-                    (d >= self->dmin) &&
-                    (d <= self->dmax) &&
-                    (val != nodata) &&
-                    (val != undetect) &&
-                    (abs(offset + gain * val) >= self->vmin))) {
-                  if (nv < NOR) {
-                    *(v+nv) = offset+gain*val;
-                    *(az+nv) = 360./nrays*ir*DEG2RAD;
-                    *(el+nv) = elangleForThisScan;
-                    *(A+nv*NOC) = sin(*(az+nv));
-                    *(A+nv*NOC+1) = cos(*(az+nv));
-                    *(A+nv*NOC+2) = 1;
-                    if (strcmp(wrwpMethod, "KNMI") == 0) {
-                        *(A+nv*NOC) *= cos(elangleForThisScan);
-                        *(A+nv*NOC+1) *= cos(elangleForThisScan);
-                        *(A+nv*NOC+2) *= sin(elangleForThisScan);
-                    }
-                    *(b+nv) = *(v+nv);
-                    nv = nv+1;
-                  } else {
-                    RAVE_ERROR0("NV too great, ignoring value");
-                  }
+              if (!WrwpInternal_getDoubleAttribute((RaveCoreObject*)scan, "how/NI", &NI)) {
+                if (!WrwpInternal_getDoubleAttribute((RaveCoreObject*)inobj, "how/NI", &NI)) {
+                  NI = fabs(offset);
                 }
               }
             }
+            if ((strcmp(wrwpMethod, "KNMI") != 0) || (NI >= self->nimin)) {
+              for (ir = 0; ir < nrays; ir++) {
+                for (ib = 0; ib < nbins; ib++) {
+                  PolarNavigator_reToDh(polnav, (ib+0.5)*rscale, elangleForThisScan, &d, &h);
+                  PolarScanParam_getValue(vrad, ib, ir, &val);
+                  if (((strcmp(wrwpMethod, "KNMI") != 0) || (elangleForThisScan * RAD2DEG <= self->econdmax) || (h >= self->hthr)) && ((h >= iz) &&
+                      (h < iz + self->dz) &&
+                      (d >= self->dmin) &&
+                      (d <= self->dmax) &&
+                      (val != nodata) &&
+                      (val != undetect) &&
+                      (abs(offset + gain * val) >= self->vmin))) {
+                    if (nv < NOR) {
+                      *(v+nv) = offset+gain*val;
+                      *(az+nv) = 360./nrays*ir*DEG2RAD;
+                      *(el+nv) = elangleForThisScan;
+                      *(A+nv*NOC) = sin(*(az+nv));
+                      *(A+nv*NOC+1) = cos(*(az+nv));
+                      *(A+nv*NOC+2) = 1;
+                      if (strcmp(wrwpMethod, "KNMI") == 0) {
+                          *(A+nv*NOC) *= cos(elangleForThisScan);
+                          *(A+nv*NOC+1) *= cos(elangleForThisScan);
+                          *(A+nv*NOC+2) *= sin(elangleForThisScan);
+                      }
+                      *(b+nv) = *(v+nv);
+                      nv = nv+1;
+                    } else {
+                      RAVE_ERROR0("NV too great, ignoring value");
+                    }
+                  }
+                }
+              }
             }
             RAVE_OBJECT_RELEASE(vrad);
           }
@@ -892,7 +894,7 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
         RAVE_OBJECT_RELEASE(startDTofThisScan);
         RAVE_OBJECT_RELEASE(endDTofThisScan);
       }
-      RAVE_OBJECT_RELEASE(scan); 
+      RAVE_OBJECT_RELEASE(scan);  
     }
 
     if (countAcceptedScans == 0) { /* Emergency exit if no accepted scans were found */
@@ -910,10 +912,14 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
     }
       
     // KNMI processing: check for azimuth gaps
-    if (strcmp(wrwpMethod, "KNMI") == 0) if (WrwpInternal_azimuthGap(az, nv, self->ngapbin, self->ngapmin)) nv = 0;
+    if (strcmp(wrwpMethod, "KNMI") == 0) {
+      if (WrwpInternal_azimuthGap(az, nv, self->ngapbin, self->ngapmin)) {
+        nv = 0;
+      }
+    }
 
     /* Perform radial wind calculations and reflectivity calculations */
-    if (nv>3) {
+    if (nv > 3) {
       //***************************************************************
       // fitting: y = gamma+alpha*sin(x+beta)                         *
       // alpha -> amplitude                                           *
@@ -921,70 +927,74 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
       // gamma -> consider an y-shift due to the terminal velocity of *
       //          falling rain drops                                  *
       //***************************************************************
-
+      if (strcmp(wrwpMethod, "KNMI") == 0) {
+        // Do first fit
+        for (i = 0; i < (nv * NOC); i++) {
+          Atmp[i] = A[i];
+        }
+        LAPACKE_dgels(LAPACK_ROW_MAJOR, 'N', nv, NOC, nrhs, Atmp, lda, b, ldb);
         
-        if (strcmp(wrwpMethod, "KNMI") == 0) {
-            // Do first fit
-            for (i = 0; i < (nv * NOC); i++) Atmp[i] = A[i];
+        // Compute vfit and chi-squared
+        chisq = 0.0;
+        for (i = 0; i < nv; i++) {
+          vfit[i] = b[0] * sin(az[i]) * cos(el[i]) + b[1] * cos(az[i]) * cos(el[i]) + b[2] * sin(el[i]);
+          chisq += (v[i] - vfit[i]) * (v[i] - vfit[i]);
+        }
+        chisq /= (nv - NOC);
+        
+        // Remove outiers
+        if (self->maxnstd > 0) {
+          Vdifmax = self->maxnstd * sqrt(chisq);
+        } else {
+          Vdifmax = self->maxvdiff;
+        }
+        n = 0;
+        for (m = 0; m < nv; m++) {
+          if (fabs(v[m] - vfit[m]) < Vdifmax) {
+            v[n] = v[m];
+            b[n] = v[m];
+            az[n] = az[m];
+            el[n] = el[m];
+            for (p = 0; p < NOC; p++) {
+              Atmp[p + NOC * n] = A[p + NOC * m];
+            }
+            n++;
+          }
+        }
+        nv = n;
+          
+        if (nv > 3) {
+          // Check for azimuth gaps and redo fitting if no gaps are there
+          if (WrwpInternal_azimuthGap(az, nv, self->ngapbin, self->ngapmin)) {
+            nv = 0;
+          } else {
             LAPACKE_dgels(LAPACK_ROW_MAJOR, 'N', nv, NOC, nrhs, Atmp, lda, b, ldb);
-            
-            // Compute vfit and chi-squared
             chisq = 0.0;
             for (i = 0; i < nv; i++) {
-                vfit[i] = b[0] * sin(az[i]) * cos(el[i]) + b[1] * cos(az[i]) * cos(el[i]) + b[2] * sin(el[i]);
-                chisq += (v[i] - vfit[i]) * (v[i] - vfit[i]);
+              vfit[i] = b[0] * sin(az[i]) * cos(el[i]) + b[1] * cos(az[i]) * cos(el[i]) + b[2] * sin(el[i]);
+              chisq += (v[i] - vfit[i]) * (v[i] - vfit[i]);
             }
             chisq /= (nv - NOC);
-            
-            // Remove outiers
-            if (self->maxnstd > 0) Vdifmax = self->maxnstd * sqrt(chisq);
-            else Vdifmax = self->maxvdiff;
-            n = 0;
-            for (m = 0; m < nv; m++)
-            {
-                if (fabs(v[m] - vfit[m]) < Vdifmax)
-                {
-                    v[n] = v[m];
-                    b[n] = v[m];
-                    az[n] = az[m];
-                    el[n] = el[m];
-                    for (p = 0; p < NOC; p++) Atmp[p + NOC * n] = A[p + NOC * m];
-                    n++;
-                }
-            }
-            nv = n;
-            
-            if (nv > 3) {
-                // Check for azimuth gaps and redo fitting if no gaps are there
-                if (WrwpInternal_azimuthGap(az, nv, self->ngapbin, self->ngapmin)) nv = 0;
-                else {
-                    LAPACKE_dgels(LAPACK_ROW_MAJOR, 'N', nv, NOC, nrhs, Atmp, lda, b, ldb);
-                    chisq = 0.0;
-                    for (i = 0; i < nv; i++) {
-                        vfit[i] = b[0] * sin(az[i]) * cos(el[i]) + b[1] * cos(az[i]) * cos(el[i]) + b[2] * sin(el[i]);
-                        chisq += (v[i] - vfit[i]) * (v[i] - vfit[i]);
-                    }
-                    chisq /= (nv - NOC);
-                }
-            }
-        } else {
-            /* QR decomposition */
-            /*info = */
-            LAPACKE_dgels(LAPACK_ROW_MAJOR, 'N', NOR, NOC, nrhs, A, lda, b, ldb);
-            chisq = 0.0;
-            for (i = 0; i < nv; i++) {
-                vfit[i] = b[0] * sin(az[i]) + b[1] * cos(az[i]) + b[2];
-                chisq += (v[i] - vfit[i]) * (v[i] - vfit[i]);
-            }
-            chisq /= nv;
+          }
         }
+      } else {
+        /* QR decomposition */
+        /*info = */
+        LAPACKE_dgels(LAPACK_ROW_MAJOR, 'N', NOR, NOC, nrhs, A, lda, b, ldb);
+        chisq = 0.0;
+        for (i = 0; i < nv; i++) {
+          vfit[i] = b[0] * sin(az[i]) + b[1] * cos(az[i]) + b[2];
+          chisq += (v[i] - vfit[i]) * (v[i] - vfit[i]);
+        }
+        chisq /= nv;
+      }
     }
         
     if (nv > 3) {
       /* parameter of the wind model */
       alpha = sqrt(pow(*(b),2) + pow(*(b+1),2));
       beta = atan2(*(b+1), *b);
-      gamma = *(b+2);
+      //gamma = *(b+2);
 
       /* wind velocity */
       vvel = alpha;
@@ -1024,7 +1034,9 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
     }
 
     /* Set the hght_field values */
-    if (hght_field != NULL) RaveField_setValue(hght_field, 0, yindex, centerOfLayer / 1000.0); /* in km */
+    if (hght_field != NULL) {
+      RaveField_setValue(hght_field, 0, yindex, centerOfLayer / 1000.0); /* in km */
+    }
 
     /* If the number of points for wind is smaller than the threshold nmin_wnd or the calculated wind velocity is larger than */
     /* threshold ff_max, set nodata, otherwise set values. */
