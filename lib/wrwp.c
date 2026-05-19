@@ -701,6 +701,8 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
 
   // Loop over the atmospheric layers
     // NOTE: looping over all height layers, and then looping over all elevations, azimuths, and ranges may be inefficient in terms of CPU use. With a little more memory use, this could be reduced. Not sure if this is at all relevant, but it could be an option to look into if necessary.
+  int *first_range_bin = RAVE_CALLOC((size_t) nscans, sizeof (double));
+  for (is = 0; is < nscans; is++) first_range_bin[is] = 0;
   for (iz = 0; iz < self->hmax; iz += self->dz) {
     /* allocate memory and initialize with zeros */
     double *A = RAVE_CALLOC((size_t)(NOR*NOC), sizeof (double));
@@ -803,6 +805,7 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
             }
           }
           // radial wind scans
+          int set_first_range_bin = -1;
           if (PolarScan_hasParameter(scan, "VRAD") || PolarScan_hasParameter(scan, "VRADH")) {
             PolarScanParam_t* vrad = NULL;
             if (PolarScan_hasParameter(scan, "VRAD")) {
@@ -825,9 +828,12 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
               }
             }
             if ((strcmp(wrwpMethod, "KNMI") != 0) || (NI >= self->nimin)) {
-              for (ir = 0; ir < nrays; ir++) {
-                for (ib = 0; ib < nbins; ib++) {
-                  PolarNavigator_reToDh(polnav, (ib+0.5)*rscale, elangleForThisScan, &d, &h);
+              for (ib = first_range_bin[is]; ib < nbins; ib++) {
+                PolarNavigator_reToDh(polnav, (ib+0.5)*rscale, elangleForThisScan, &d, &h);
+                if ((d > self->dmax) || (h >= iz + self->dz)) {
+                  break;
+                }
+                for (ir = 0; ir < nrays; ir++) {
                   PolarScanParam_getValue(vrad, ib, ir, &val);
                   if (((strcmp(wrwpMethod, "KNMI") != 0) || (elangleForThisScan * RAD2DEG <= self->econdmax) || (h >= self->hthr)) && ((h >= iz) &&
                       (h < iz + self->dz) &&
@@ -856,6 +862,7 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
                   }
                 }
               }
+              set_first_range_bin = ib;
             }
             RAVE_OBJECT_RELEASE(vrad);
           }
@@ -868,9 +875,12 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
             nodata = PolarScanParam_getNodata(dbz);
             undetect = PolarScanParam_getUndetect(dbz);
 
-            for (ir = 0; ir < nrays; ir++) {
-              for (ib = 0; ib < nbins; ib++) {
-                PolarNavigator_reToDh(polnav, (ib+0.5)*rscale, elangleForThisScan, &d, &h);
+            for (ib = first_range_bin[is]; ib < nbins; ib++) {
+              PolarNavigator_reToDh(polnav, (ib+0.5)*rscale, elangleForThisScan, &d, &h);
+              if ((d > self->dmax) || (h >= iz + self->dz)) {
+                break;
+              }
+              for (ir = 0; ir < nrays; ir++) {
                 PolarScanParam_getValue (dbz, ib, ir, &val);
                 if ((h >= iz) &&
                     (h < iz+self->dz) &&
@@ -888,8 +898,12 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
                 }
               }
             }
+            set_first_range_bin = ib;
             RAVE_OBJECT_RELEASE(dbz);         
-          }        
+          }
+          if (set_first_range_bin >= 0) {
+            first_range_bin[is] = set_first_range_bin;
+          }
         }
         RAVE_OBJECT_RELEASE(startDTofThisScan);
         RAVE_OBJECT_RELEASE(endDTofThisScan);
@@ -907,6 +921,7 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
       RAVE_FREE(z);
       RAVE_FREE(az);
       RAVE_FREE(el);
+      RAVE_FREE(first_range_bin);
       RAVE_INFO0("Could not find any acceptable scans, dropping out...");
       goto done;
     }
@@ -1079,6 +1094,7 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
 
     yindex++;   
   }
+  RAVE_FREE(first_range_bin);
 
   if (uwnd_field) WrwpInternal_addNodataUndetectGainOffset(uwnd_field, self->nodata_VP, self->undetect_VP, self->gain_VP, self->offset_VP);
   if (vwnd_field) WrwpInternal_addNodataUndetectGainOffset(vwnd_field, self->nodata_VP, self->undetect_VP, self->gain_VP, self->offset_VP);
