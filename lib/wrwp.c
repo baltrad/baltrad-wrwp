@@ -830,7 +830,10 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
             if ((strcmp(wrwpMethod, "KNMI") != 0) || (NI >= self->nimin)) {
               for (ib = first_range_bin[is]; ib < nbins; ib++) {
                 PolarNavigator_reToDh(polnav, (ib+0.5)*rscale, elangleForThisScan, &d, &h);
-                if ((d > self->dmax) || (h >= iz + self->dz)) {
+                if (d > self->dmax) {
+                  break;
+                }
+                if ((elangleForThisScan >= 0.0) && (h >= iz + self->dz)) {
                   break;
                 }
                 for (ir = 0; ir < nrays; ir++) {
@@ -862,7 +865,9 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
                   }
                 }
               }
-              set_first_range_bin = ib;
+              if (elangleForThisScan >= 0.0) {
+                set_first_range_bin = ib;
+              }
             }
             RAVE_OBJECT_RELEASE(vrad);
           }
@@ -877,7 +882,10 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
 
             for (ib = first_range_bin[is]; ib < nbins; ib++) {
               PolarNavigator_reToDh(polnav, (ib+0.5)*rscale, elangleForThisScan, &d, &h);
-              if ((d > self->dmax) || (h >= iz + self->dz)) {
+              if (d > self->dmax) {
+                break;
+              }
+              if ((elangleForThisScan >= 0.0) && (h >= iz + self->dz)) {
                 break;
               }
               for (ir = 0; ir < nrays; ir++) {
@@ -898,7 +906,9 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
                 }
               }
             }
-            set_first_range_bin = ib;
+            if (elangleForThisScan >= 0.0) {
+              set_first_range_bin = ib;
+            }
             RAVE_OBJECT_RELEASE(dbz);         
           }
           if (set_first_range_bin >= 0) {
