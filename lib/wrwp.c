@@ -701,7 +701,7 @@ VerticalProfile_t* Wrwp_generate(Wrwp_t* self, PolarVolume_t* inobj, const char*
 
   // Loop over the atmospheric layers
     // NOTE: looping over all height layers, and then looping over all elevations, azimuths, and ranges may be inefficient in terms of CPU use. With a little more memory use, this could be reduced. Not sure if this is at all relevant, but it could be an option to look into if necessary.
-  int *first_range_bin = RAVE_CALLOC((size_t) nscans, sizeof (double));
+  int *first_range_bin = RAVE_CALLOC((size_t) nscans, sizeof (int));
   for (is = 0; is < nscans; is++) first_range_bin[is] = 0;
   for (iz = 0; iz < self->hmax; iz += self->dz) {
     /* allocate memory and initialize with zeros */
